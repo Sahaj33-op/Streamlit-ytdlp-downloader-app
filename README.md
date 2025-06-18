@@ -117,4 +117,4 @@ Made with ❤️ using Python and Streamlit.
 
 ## 📃 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT [License](https://github.com/Sahaj33-op/Streamlit-ytdlp-downloader-app/blob/main/LICENSE).
