@@ -20,7 +20,6 @@ import imageio_ffmpeg as iio
 
 # this gives you the path to the ffmpeg executable inside the package
 ffmpeg_exe = iio.get_ffmpeg_exe()  
-ffprobe_exe = iio.get_ffprobe_exe()
 
 # prepend its directory so subprocess can find it
 ff_dir = os.path.dirname(ffmpeg_exe)
