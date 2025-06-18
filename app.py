@@ -16,47 +16,6 @@ import platform
 import sys
 import zipfile
 
-import stat, tarfile
-
-def ensure_ffmpeg_with_probe():
-    # If either binary already on PATH, do nothing
-    if shutil.which("ffmpeg") and shutil.which("ffprobe"):
-        return
-
-    # URL to John Van Sickle's static Linux builds
-    url = "https://johnvansickle.com/ffmpeg/builds/ffmpeg-release-amd64-static.tar.xz"
-    resp = requests.get(url, stream=True, timeout=30)
-    resp.raise_for_status()
-
-    # Write archive to temp
-    tmpdir  = tempfile.mkdtemp(prefix="ffmpeg_")
-    archive = os.path.join(tmpdir, "ffmpeg.tar.xz")
-    with open(archive, "wb") as f:
-        for chunk in resp.iter_content(1024*1024):
-            f.write(chunk)
-
-    # Extract only ffmpeg & ffprobe members
-    with tarfile.open(archive) as tar:
-        members = [m for m in tar.getmembers()
-                   if m.name.endswith(("ffmpeg","ffprobe"))]
-        tar.extractall(path=tmpdir, members=members)
-
-    # The binaries live under a subfolder like ".../ffmpeg-*-static/"
-    subdir = next(d for d in os.listdir(tmpdir) if "static" in d)
-    bindir = os.path.join(tmpdir, subdir)
-
-    # Make sure they’re executable
-    for name in ("ffmpeg","ffprobe"):
-        path = os.path.join(bindir, name)
-        os.chmod(path, os.stat(path).st_mode | stat.S_IEXEC)
-
-    # Prepend to PATH so subprocess.run(...) picks them up
-    os.environ["PATH"] = bindir + os.pathsep + os.environ.get("PATH","")
-
-# Call it immediately
-ensure_ffmpeg_with_probe()
-
-
 st.set_page_config(
     layout="wide", 
     page_title="YT-DLP Downloader", 
