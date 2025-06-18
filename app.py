@@ -16,6 +16,16 @@ import platform
 import sys
 import zipfile
 
+import imageio_ffmpeg as iio
+
+# this gives you the path to the ffmpeg executable inside the package
+ffmpeg_exe = iio.get_ffmpeg_exe()  
+ffprobe_exe = iio.get_ffprobe_exe()
+
+# prepend its directory so subprocess can find it
+ff_dir = os.path.dirname(ffmpeg_exe)
+os.environ["PATH"] = ff_dir + os.pathsep + os.environ.get("PATH", "")
+
 st.set_page_config(
     layout="wide", 
     page_title="YT-DLP Downloader", 
