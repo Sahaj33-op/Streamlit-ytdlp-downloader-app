@@ -16,6 +16,40 @@ import platform
 import sys
 import zipfile
 
+
+import stat, tarfile
+
+def ensure_ffmpeg():
+    if shutil.which("ffmpeg"):
+        return  # already available
+    # URL to a Linux static build (adjust for your platform)
+    url = "https://johnvansickle.com/ffmpeg/builds/ffmpeg-release-amd64-static.tar.xz"
+    r = requests.get(url, stream=True, timeout=30)
+    r.raise_for_status()
+
+    tmp = tempfile.mkdtemp()
+    archive = os.path.join(tmp, "ffmpeg.tar.xz")
+    with open(archive, "wb") as f:
+        for chunk in r.iter_content(1024*1024):
+            f.write(chunk)
+
+    with tarfile.open(archive) as tar:
+        # extract only ffmpeg & ffprobe
+        members = [m for m in tar.getmembers() if m.name.endswith(("ffmpeg","ffprobe"))]
+        tar.extractall(path=tmp, members=members)
+
+    bin_dir = tmp  # binaries live directly under tmp/
+    # ensure executable
+    for name in ("ffmpeg","ffprobe"):
+        path = os.path.join(bin_dir, name)
+        os.chmod(path, os.stat(path).st_mode | stat.S_IEXEC)
+
+    os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH","")
+
+# call this at top of app.py
+ensure_ffmpeg()
+
+
 st.set_page_config(
     layout="wide", 
     page_title="YT-DLP Downloader", 
