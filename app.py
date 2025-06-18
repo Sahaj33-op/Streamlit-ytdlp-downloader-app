@@ -16,13 +16,10 @@ import platform
 import sys
 import zipfile
 
-import imageio_ffmpeg as iio
+from ffmpeg_static_python import get_ffmpeg_bin_dir
 
-# this gives you the path to the ffmpeg executable inside the package
-ffmpeg_exe = iio.get_ffmpeg_exe()  
-
-# prepend its directory so subprocess can find it
-ff_dir = os.path.dirname(ffmpeg_exe)
+# Prepend the directory containing both ffmpeg & ffprobe
+ff_dir = get_ffmpeg_bin_dir()
 os.environ["PATH"] = ff_dir + os.pathsep + os.environ.get("PATH", "")
 
 st.set_page_config(
