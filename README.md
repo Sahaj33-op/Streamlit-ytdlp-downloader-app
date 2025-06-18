@@ -1,11 +1,95 @@
-🎬 Advanced YT-DLP DownloaderA powerful and user-friendly web application built with Streamlit, enabling you to download videos and audio from over 1000+ online platforms using the robust yt-dlp command-line program. This app features a sleek dark theme, extensive download customization options, and a convenient batch download capability.Table of ContentsFeaturesScreenshotsInstallationPrerequisitesSetup InstructionsUsageRunning the AppSingle Video/Audio DownloadBatch DownloadNavigation TabsImportant Notes & TroubleshootingContributingLicenseCreditsFeaturesBroad Platform Support: Download from YouTube, Twitch, Twitter/X, Instagram, TikTok, Facebook, Vimeo, and over 1000 other sites via yt-dlp.Intuitive Dark Theme UI: A modern and visually appealing dark interface built with Streamlit and custom CSS.Detailed Video Information: Fetch and display video title, thumbnail, duration, uploader, and view count before downloading.Flexible Download Types: Choose to download video with audio, audio only, or video only.Quality Selection: Select desired video quality (e.g., 1080p, 720p) or opt for the best available.Audio Format Conversion: Convert audio to popular formats like MP3, AAC, Opus, FLAC, and WAV.Advanced Format String: For power users, specify custom yt-dlp format selectors.Subtitle Support: Download subtitles (including auto-generated) in multiple languages and optionally embed them.Thumbnail & Metadata Embedding: Embed video thumbnails as cover art and comprehensive metadata directly into the downloaded file.Custom Filenaming: Define custom output filename templates.Playlist Download Options: Specify start/end indices for playlists and filter by upload date (after/before).Batch Download: Process multiple URLs sequentially with shared download settings.Live Progress Monitoring: View real-time download progress and logs directly within the app.Download History: Keep a record of your past downloads with status and quick links.System Monitor: Basic insights into system resources (CPU, Memory, Disk) and a network speed test.Dependency Status: Quickly check if yt-dlp and FFmpeg are installed.Keyboard Shortcuts: Enhanced UX with handy keyboard shortcuts.Screenshots(To be added by the user: Replace this text with actual screenshots of your application to showcase its UI and features.)InstallationPrerequisitesBefore you begin, ensure you have the following installed on your system:Python 3.8+: You can download it from python.org.Git: Download from git-scm.com.yt-dlp executable: This application uses yt-dlp as a backend. While the Python library yt_dlp is installed via pip, the application also relies on the yt-dlp command-line tool for download execution and advanced features.Windows: Download yt-dlp.exe from the yt-dlp GitHub Releases and place it in a directory that's in your system's PATH (e.g., C:\Windows, or a custom directory added to PATH).macOS/Linux: Install via pip install yt-dlp (this installs both the library and the executable) or your package manager (e.g., brew install yt-dlp on macOS, sudo apt install yt-dlp on Ubuntu/Debian).FFmpeg & FFprobe (Highly Recommended): Required for most post-processing features like audio conversion, embedding subtitles/thumbnails/metadata, and more.Windows: Download a build from ffmpeg.org and add its bin directory to your system's PATH. Alternatively, use winget install FFmpeg if you have Winget.macOS: brew install ffmpegLinux: sudo apt install ffmpeg (Ubuntu/Debian), sudo dnf install ffmpeg (Fedora).Setup InstructionsClone the Repository:git clone https://github.com/your-username/streamlit-ytdlp-downloader-app.git
-cd streamlit-ytdlp-downloader-app
-(Replace your-username with your actual GitHub username and streamlit-ytdlp-downloader-app if you named your repository differently.)Create a Virtual Environment (Recommended):Virtual environments help isolate project dependencies.python -m venv venv
-Activate the Virtual Environment:Windows (PowerShell):.\venv\Scripts\Activate.ps1
-Windows (Command Prompt):venv\Scripts\activate.bat
-macOS/Linux:source venv/bin/activate
-(You should see (venv) prepended to your terminal prompt.)Install Python Dependencies:pip install -r requirements.txt
-# If requirements.txt is not yet generated, or for fresh install:
-# pip install streamlit yt-dlp requests psutil
-UsageRunning the AppWith your virtual environment activated, run the Streamlit application:streamlit run app.py
-This will open the app in your default web browser (usually at http://localhost:8501).Single Video/Audio DownloadGo to the "🏠 Download" tab.Paste the URL of the video, playlist, or channel into the "Enter URL" input field.Click "🔍 Fetch Info" to retrieve and display video details.Configure your desired download type, quality, audio format, and other additional options using the provided dropdowns and checkboxes.Click "🚀 Start Download" to begin the process. Progress and logs will be displayed in real-time.Once complete, a download button will appear for the downloaded file(s).Batch DownloadNavigate to the "⚙️ Advanced" tab.In the "Batch Download" section, enter multiple URLs, one per line, into the text area.Select your desired "Batch Download Options" which will apply to all URLs in the batch.Click "🚀 Start Batch Download". The app will process each URL sequentially, showing individual progress, and provide a summary upon completion.Navigation Tabs🏠 Download: For single URL downloads with detailed options.⚙️ Advanced: Contains the batch download feature and other custom settings.📊 Monitor: Provides basic system resource monitoring (CPU, Memory, Disk) and a network speed test.📚 History: Displays a record of your past downloads.🔧 System: Shows dependency status (yt-dlp, FFmpeg, FFprobe) and installation instructions for different operating systems.Important Notes & TroubleshootingFFmpeg is Crucial: Many advanced features like audio conversion, embedding metadata, subtitles, and thumbnails rely on FFmpeg. Ensure it is installed and its executable is accessible via your system's PATH.Temporary Files: The app creates temporary directories (ytdlp_...) to store downloads during processing. These are generally cleaned up automatically upon successful download or app restart.Streamlit's Nature: Streamlit apps rerun from top to bottom on user interaction or state changes. Long-running tasks like downloads can appear to "block" the UI, but progress is updated via st.progress and st.empty placeholders.ModuleNotFoundError: No module named 'yt_dlp': If you encounter this, ensure your virtual environment is active and you've installed yt-dlp using pip install yt-dlp within that environment. If issues persist, try pip uninstall streamlit yt-dlp followed by a fresh pip install streamlit yt-dlp.URL Issues: If a download fails, double-check the URL. Some videos may be private, geo-restricted, or deleted.ContributingContributions, issues, and feature requests are welcome! Feel free to check the issues page (once you create your repo) if you want to contribute.LicenseThis project is licensed under the MIT License - see the LICENSE file for details. (Note: You'll need to create a LICENSE file in your repository if you don't already have one.)Creditsyt-dlp: The core power behind this downloader. Find it on GitHub.Streamlit: The amazing framework used to build this web application. Learn more at streamlit.io.Sahaj Vaghela: (Your Name/GitHub Handle) - Initial developer of this Streamlit application.
+# 🎬 YT-DLP Downloader (Streamlit App)
+
+An advanced, beautifully designed Streamlit web app for downloading videos and audio using `yt-dlp`. Supports downloading single videos, playlists, and batch URLs with additional options like subtitle downloads, audio format selection, metadata embedding, and more.
+
+---
+
+## 🚀 Features
+
+- 🎥 **Download Types**: Video+Audio, Audio-only, or Video-only
+- 🧠 **Smart URL Detection**: Detects video vs playlist automatically
+- 🎚 **Custom Quality**: Choose from Best, 1080p, 720p, 480p, etc.
+- 🎵 **Audio Format Selector**: mp3, aac, m4a, opus, flac
+- 📝 **Download Subtitles**, Thumbnails, Add Metadata
+- 📦 **Batch Download** (Coming Soon)
+- 📚 **Download History** with session persistence
+- 📊 **System Monitor**: Memory, disk, network speed
+- ⚙️ **Advanced Options**: Proxy, filename templates, custom format
+- ✨ **Beautiful Dark UI** with custom CSS
+
+---
+
+## 🛠️ Installation
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/yourusername/yt-dlp-streamlit.git
+cd yt-dlp-streamlit
+```
+
+### 2. Create a virtual environment (optional)
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Make sure `yt-dlp`, `ffmpeg`, and `ffprobe` are installed and available in your system PATH.
+
+#### Install yt-dlp
+
+```bash
+pip install yt-dlp
+```
+
+#### Install FFmpeg
+
+- **Windows**:  
+  ```bash
+  winget install FFmpeg
+  ```
+- **Linux**:  
+  ```bash
+  sudo apt install ffmpeg
+  ```
+- **macOS**:  
+  ```bash
+  brew install ffmpeg
+  ```
+
+---
+
+## ▶️ Running the App
+
+```bash
+streamlit run app.py
+```
+
+---
+
+## 💻 Tech Stack
+
+- Streamlit
+- yt-dlp
+- FFmpeg
+- Python standard libraries
+
+---
+
+## 👨‍💻 Author
+
+**[Sahaj33](https://linktr.ee/sahaj33)**  
+Made with ❤️ using Python and Streamlit.
+
+---
+
+## 📃 License
+
+This project is licensed under the MIT License.
