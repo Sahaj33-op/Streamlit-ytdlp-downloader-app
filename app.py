@@ -16,6 +16,26 @@ import platform
 import sys
 import zipfile
 
+import streamlit.components.v1 as components
+
+adsense_code = """
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+     crossorigin="anonymous"></script>
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-9909413423844887"
+     data-ad-slot="YYYYYYYYYY"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+"""
+
+components.html(adsense_code, height=100)
+
+
+
 st.set_page_config(
     layout="wide", 
     page_title="YT-DLP Downloader", 
