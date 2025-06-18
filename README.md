@@ -1,95 +1,113 @@
-# 🎬 YT-DLP Downloader (Streamlit App)
+# 🎬 YT-DLP Downloader – Streamlit Web App
 
-An advanced, beautifully designed Streamlit web app for downloading videos and audio using `yt-dlp`. Supports downloading single videos, playlists, and batch URLs with additional options like subtitle downloads, audio format selection, metadata embedding, and more.
+```
+              ██╗░░░██╗████████╗  ██████╗░██████╗░██╗░░░░░██████╗░
+              ██║░░░██║╚══██╔══╝  ██╔══██╗██╔══██╗██║░░░░░██╔══██╗
+              ██║░░░██║░░░██║░░░  ██████╦╝██████╔╝██║░░░░░██████╦╝
+              ██║░░░██║░░░██║░░░  ██╔══██╗██╔═══╝░██║░░░░░██╔══██╗
+              ╚██████╔╝░░░██║░░░  ██████╦╝██║░░░░░███████╗██████╦╝
+               ╚═════╝░░░░╚═╝░░░  ╚═════╝░╚═╝░░░░░╚══════╝╚═════╝░
+
+               YT-DLP GUI Downloader powered by Streamlit – by Sahaj33
+```
+
+> Download videos & audio from YouTube and other platforms with style and advanced options.
+
+<p align="center">
+  <a href="https://github.com/Sahaj33-op/YT-DLP-Downloader">
+    <img src="https://img.shields.io/badge/Streamlit-Deploy-red?logo=streamlit" alt="Streamlit Badge">
+  </a>
+  <a href="https://www.python.org">
+    <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python Version">
+  </a>
+  <img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="MIT License">
+</p>
 
 ---
 
-## 🚀 Features
+## ✨ Key Features
 
-- 🎥 **Download Types**: Video+Audio, Audio-only, or Video-only
-- 🧠 **Smart URL Detection**: Detects video vs playlist automatically
-- 🎚 **Custom Quality**: Choose from Best, 1080p, 720p, 480p, etc.
-- 🎵 **Audio Format Selector**: mp3, aac, m4a, opus, flac
-- 📝 **Download Subtitles**, Thumbnails, Add Metadata
-- 📦 **Batch Download** (Coming Soon)
-- 📚 **Download History** with session persistence
-- 📊 **System Monitor**: Memory, disk, network speed
-- ⚙️ **Advanced Options**: Proxy, filename templates, custom format
-- ✨ **Beautiful Dark UI** with custom CSS
+| Feature                   | Description                                                             |
+|---------------------------|-------------------------------------------------------------------------|
+| 📥 Video & Audio Download | Supports full video+audio, audio-only, or video-only options            |
+| 🎚 Format & Quality       | Choose from 1080p, 720p, or best available formats                      |
+| 📄 Subtitles & Metadata   | Option to download subs, thumbnails, and embed metadata (ffmpeg needed) |
+| 📁 Playlist Support       | Select specific video range in playlists                                |
+| 🛠 Custom Settings        | Advanced format strings, proxy config, rate limit, filename templates   |
+| 📊 System Monitor         | View memory usage, free disk space, and test download speed             |
+| 📜 Download History       | Tracks previous downloads with status and titles                        |
+| 🌐 Streamlit Interface    | Fully featured dark UI with tabs and floating buttons                   |
 
 ---
 
-## 🛠️ Installation
+## 📂 Project Structure
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/Sahaj33-op/Streamlit-ytdlp-downloader-app
-cd yt-dlp-streamlit
+```
+YT-DLP-Downloader/
+├── app.py               # Streamlit application
+├── requirements.txt     # Dependencies
+├── README.md            # You’re reading it!
+└── .gitignore           # Clean repository
 ```
 
-### 2. Create a virtual environment (optional)
+---
+
+## 🚀 Quickstart
+
+### 🔧 Setup
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-### 3. Install dependencies
-
-```bash
+git clone https://github.com/Sahaj33-op/YT-DLP-Downloader
+cd YT-DLP-Downloader
 pip install -r requirements.txt
 ```
 
-Make sure `yt-dlp`, `ffmpeg`, and `ffprobe` are installed and available in your system PATH.
-
-#### Install yt-dlp
+Install [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [ffmpeg](https://ffmpeg.org):
 
 ```bash
 pip install yt-dlp
+# and install ffmpeg using your system package manager
 ```
-
-#### Install FFmpeg
-
-- **Windows**:  
-  ```bash
-  winget install FFmpeg
-  ```
-- **Linux**:  
-  ```bash
-  sudo apt install ffmpeg
-  ```
-- **macOS**:  
-  ```bash
-  brew install ffmpeg
-  ```
 
 ---
 
-## ▶️ Running the App
+### ▶️ Launch the App
 
 ```bash
 streamlit run app.py
 ```
 
+Open in your browser: [http://localhost:8501](http://localhost:8501)
+
 ---
 
-## 💻 Tech Stack
+## 🧠 System Requirements
 
-- Streamlit
+- Python 3.10+
 - yt-dlp
-- FFmpeg
-- Python standard libraries
+- ffmpeg + ffprobe (for advanced features)
+- Streamlit
 
 ---
 
-## 👨‍💻 Author
+## 🎨 UI Showcase
 
-**[Sahaj33](https://linktr.ee/sahaj33)**  
-Made with ❤️ using Python and Streamlit.
+| Home Tab | Video Info | Monitor |
+|----------|------------|---------|
+| ![](https://via.placeholder.com/400x200?text=YT-DLP+Home) | ![](https://via.placeholder.com/400x200?text=Video+Info) | ![](https://via.placeholder.com/400x200?text=System+Monitor) |
 
 ---
 
-## 📃 License
+## 🧠 Credits
 
-This project is licensed under the MIT License.
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp)
+- [Streamlit](https://streamlit.io)
+- [FFmpeg](https://ffmpeg.org)
+- Built with ❤️ by [Sahaj33](https://linktr.ee/sahaj33)
+
+---
+
+## 📜 License
+
+MIT License – See [LICENSE](LICENSE) for details.
+
