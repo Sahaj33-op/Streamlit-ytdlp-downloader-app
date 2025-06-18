@@ -2,4 +2,3 @@ streamlit
 yt-dlp
 requests
 psutil
-ffmpeg-static-python
