@@ -24,7 +24,7 @@ An advanced, beautifully designed Streamlit web app for downloading videos and a
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/yt-dlp-streamlit.git
+git clone https://github.com/Sahaj33-op/Streamlit-ytdlp-downloader-app
 cd yt-dlp-streamlit
 ```
 
