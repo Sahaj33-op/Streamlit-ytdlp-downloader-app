@@ -436,10 +436,10 @@ with tab1:
 
     # --- COOKIES UPLOADER ---
     cookies_file = st.file_uploader(
-        "Upload cookies.txt (optional - must be in Netscape format)
+        """Upload cookies.txt (optional - must be in Netscape format)
          ⚠️ Your cookie files are temporarily uploaded and deleted immediately after processing.
          ⚠️ No cookies are stored, logged, or shared.
-         💡 You can inspect the source code on GitHub here for transparency.",
+         💡 You can inspect the source code on GitHub here for transparency.""",
         type=["txt", "cookies"],
         help="Upload a cookies.txt file for sites requiring authentication"
     )
