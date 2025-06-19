@@ -109,6 +109,21 @@ streamlit run app.py
 
 ---
 
+## 🔐 Security & Privacy Notice
+Your privacy and data security matter. Here's how your data is handled:
+
+- ✅ No Permanent Storage: Any files you upload (like cookies.txt) are stored temporarily and automatically deleted after the download task or when the session ends.
+  
+- 🔒 No Tracking: This app does not collect, log, or share any personal data or usage info.
+  
+- 🧾 Open Source: All code is public. You can audit everything in the GitHub Repository to verify how your data is managed.
+  
+- 💻 Run Locally for Full Control: For maximum privacy, clone the repo and run it on your own machine.
+  
+- ⚠️ Disclaimer: Always be cautious when uploading any sensitive data (like cookies). Avoid uploading cookies from personal accounts unless you understand the risks and trust the environment.
+
+---
+
 ## 👨‍💻 Author
 
 **[Sahaj33](https://linktr.ee/sahaj33)**  
