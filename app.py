@@ -48,6 +48,23 @@ def ensure_ffmpeg():
 # call this at top of app.py
 ensure_ffmpeg()
 
+def cleanup_temp_dir_robust(temp_dir):
+    """Safely clean up a temporary directory and its contents."""
+    if not temp_dir or not os.path.exists(temp_dir):
+        return True
+    try:
+        shutil.rmtree(temp_dir, ignore_errors=False)
+        return True
+    except PermissionError:
+        st.warning(f"Permission error while cleaning up {temp_dir}. Some files may remain.")
+        return False
+    except OSError as e:
+        st.error(f"Failed to clean up {temp_dir}: {str(e)}")
+        return False
+    except Exception as e:
+        st.error(f"Unexpected error cleaning up {temp_dir}: {str(e)}")
+        return False
+
 
 st.set_page_config(
     layout="wide", 
