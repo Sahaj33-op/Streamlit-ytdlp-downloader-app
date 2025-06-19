@@ -388,7 +388,7 @@ def categorize_error(error_message):
     elif 'ffmpeg' in error_lower:
         return "FFmpeg Error", "FFmpeg is required for this operation."
     else:
-        return "Unknown Error", "Check the logs for more details."
+        return "Unknown Error", "Try using cookies."
 
 # --- Initialize Session State ---
 if 'video_info' not in st.session_state:
@@ -1430,7 +1430,7 @@ https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md
 # --- Version information ---
 st.markdown("""
 <div style="position: fixed; bottom: 10px; left: 10px; background: rgba(0, 0, 0, 0.7); padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; color: #888;">
-    v2.0.0 | Enhanced UI
+    v2.5.0 | Enhanced UI
 </div>
 """, unsafe_allow_html=True)
 
