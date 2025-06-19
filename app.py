@@ -1,24 +1,10 @@
 import streamlit.components.v1 as components
 
-adsense_code = """
-<!-- Google AdSense Ad Block -->
+# Inject AdSense site verification script
+components.html("""
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9909413423844887"
      crossorigin="anonymous"></script>
-<ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-9909413423844887"
-     data-ad-slot="9259830735"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9909413423844887"
-     crossorigin="anonymous"></script>
-"""
-
-
-components.html(adsense_code, height=100)
+""", height=0)
 
 
 import streamlit as st
