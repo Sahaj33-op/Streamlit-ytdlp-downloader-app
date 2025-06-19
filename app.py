@@ -435,23 +435,79 @@ with tab1:
         fetch_clicked = st.button("🔍 Fetch Info", use_container_width=True, disabled=not url)
 
     # --- COOKIES UPLOADER ---
-    cookies_file = st.file_uploader(
-        """Upload cookies.txt (optional - must be in Netscape format)
-         ⚠️ Your cookie files are temporarily uploaded and deleted immediately after processing.
-         ⚠️ No cookies are stored, logged, or shared.
-         💡 You can inspect the source code on GitHub here for transparency.""",
-        type=["txt", "cookies"],
-        help="Upload a cookies.txt file for sites requiring authentication"
-    )
 
+    MAX_COOKIE_SIZE_MB = 2
+    MAX_COOKIE_SIZE_BYTES = MAX_COOKIE_SIZE_MB * 1024 * 1024
+
+    st.markdown("### 🔐 Optional: Upload cookies.txt")
+
+    with st.expander("⚠️ Read before uploading cookies"):
+        st.warning(
+            """
+            Uploading `cookies.txt` enables access to age-restricted or private videos.
+
+            - 🔐 Cookies are used **only in your current session** and **deleted instantly after processing**
+            - ⚠️ **Do NOT** upload cookies from accounts with sensitive or financial access
+            - 🧾 This app is **open-source** and runs without storing any personal info
+            - 🇪🇺 **Note for EU/UK users**: Uploading session cookies may count as personal data under GDPR
+
+            👉 You are advised to run the app locally for full data control.
+            """
+        )
+
+    agree = st.checkbox("✅ I understand and accept the risk of uploading cookies.")
+
+    cookies_file = None
     cookies_path = None
-    if cookies_file is not None:
-        # Save uploaded file to a temp file
-        cookies_temp = tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="wb")
-        cookies_temp.write(cookies_file.read())
-        cookies_temp.close()
-        cookies_path = cookies_temp.name
-        st.success("✅ Cookies file loaded")
+
+    if agree:
+        st.markdown(
+            """
+            <style>
+            [data-testid="stFileUploaderDropzoneInstructions"] small {
+                display: none !important;
+            }
+            [data-testid="stFileUploaderDropzoneInstructions"] > div::after {
+                content: "Limit 2MB per file ( .txt only )";
+                display: block;   
+                margin-top: 0rem;
+                font-size: 0.875rem;
+                color: #6c757d;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        cookies_file = st.file_uploader(
+            "Upload cookies.txt",
+            type=["txt"],
+            accept_multiple_files=False,
+            help="Exported from browser extension like EditThisCookie. Max 2 MB.",
+        )
+
+        if cookies_file:
+            if cookies_file.size > MAX_COOKIE_SIZE_BYTES:
+                st.error(f"❌ File too large. Max allowed size: {MAX_COOKIE_SIZE_MB} MB.")
+            else:
+                # Save to a temporary file
+                cookies_temp = tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="wb")
+                cookies_temp.write(cookies_file.read())
+                cookies_temp.close()
+                cookies_path = cookies_temp.name
+                st.success("✅ Cookies file accepted.")
+
+                # Example: Use cookies_path in yt-dlp options, then clean up
+                # ... yt-dlp logic here ...
+                # After use, clean up the temp file
+                try:
+                    os.remove(cookies_path)
+                except Exception as e:
+                    st.warning(f"Could not clean up cookies file: {e}")
+
+    else:
+        st.info("Please accept the disclaimer above to enable cookie upload.")
+
 
     # URL Validation
     if url:
