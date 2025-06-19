@@ -1,12 +1,3 @@
-import streamlit.components.v1 as components
-
-# Inject AdSense site verification script
-components.html("""
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9909413423844887"
-     crossorigin="anonymous"></script>
-""", height=0)
-
-
 import streamlit as st
 import subprocess
 import os
@@ -31,6 +22,16 @@ st.set_page_config(
     page_icon="🎬",
     initial_sidebar_state="collapsed"
 )
+
+import streamlit.components.v1 as components
+
+# Inject AdSense site verification script
+components.html("""
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9909413423844887"
+     crossorigin="anonymous"></script>
+""", height=0)
+
+
 
 # --- Enhanced Custom CSS ---
 st.markdown("""
