@@ -13,10 +13,10 @@ adsense_code = """
 <script>
      (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
-"""
-
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9909413423844887"
      crossorigin="anonymous"></script>
+"""
+
 
 components.html(adsense_code, height=100)
 
