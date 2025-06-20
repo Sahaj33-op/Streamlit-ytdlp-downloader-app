@@ -1,47 +1,41 @@
 # 🔐 Security Policy
 
-## Supported Versions
+## ✅ Supported Versions
 
-This project is actively maintained and follows a simple security model. All releases on the `main` branch are covered.
+This project is actively maintained and follows a simple security model. All releases on the main branch are covered.
 
 | Version | Supported |
-| ------- | --------- |
+|---------|-----------|
 | main    | ✅         |
 
 ---
 
 ## 🔐 Data Handling Policy
 
-- User-uploaded files (e.g., `cookies.txt`) are **stored temporarily** and removed **immediately after use**.
-- The app does **not store, log, or transmit any personal or cookie data** beyond the current Streamlit session.
-- All source code is [public and auditable](https://github.com/Sahaj33-op/Streamlit-ytdlp-downloader-app).
+- This app **does not accept or require any user-uploaded files**.
+- No cookies, login credentials, or personal session data are ever requested or processed.
+- The app runs fully within the user's session — no data is logged or transmitted outside.
+- All source code is **open-source and auditable**.
 
-> 🔎 If you're concerned, you are encouraged to run the app **locally** for full data control.
+> 🔎 For maximum privacy, you're encouraged to run the app locally on your own machine.
 
 ---
 
 ## ✅ Best Practices
 
-- Never upload cookies from sensitive/personal accounts unless you trust the host.
-- Use throwaway/alternate accounts for testing or accessing age-restricted/region-locked content.
-- Always inspect the code before uploading any personal files.
+- Never trust apps that ask you to upload sensitive cookies or credentials unless you fully control the code.
+- You are safe to use this app with **public YouTube links** only — no authentication is required.
+- Always review open-source apps before deployment.
 
 ---
 
 ## 🇪🇺 GDPR & Data Protection Compliance
 
-This project does **not collect**, **store**, or **process** personal data.
+This project is **compliant by design** with GDPR, CCPA, and other data protection laws:
 
-However, if you choose to upload files like `cookies.txt`, these **may contain session data** that can be considered personally identifiable information (PII) under laws like:
-
-- EU General Data Protection Regulation (GDPR)
-- UK Data Protection Act
-- California Consumer Privacy Act (CCPA)
-
-**Recommendations:**
-- Only upload data you control and understand.
-- Never upload cookies from accounts containing personal, sensitive, or financial access.
-- Prefer running the app locally to retain full control over your environment.
+- It does **not collect, store, or process personal data**.
+- No cookies, tokens, or account identifiers are handled or exposed.
+- No tracking, fingerprinting, or analytics libraries are embedded.
 
 ---
 
@@ -49,4 +43,4 @@ However, if you choose to upload files like `cookies.txt`, these **may contain s
 
 **Sahaj33**  
 📧 sahajitaliya33@gmail.com  
-🌐 https://linktr.ee/sahaj33
+🌐 [linktr.ee/sahaj33](https://linktr.ee/sahaj33)
