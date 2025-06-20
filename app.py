@@ -388,7 +388,7 @@ def categorize_error(error_message):
     elif 'ffmpeg' in error_lower:
         return "FFmpeg Error", "FFmpeg is required for this operation."
     else:
-        return "Unknown Error", "Try using cookies."
+        return "Unknown Error", "An unexpected error occurred."
 
 # --- Initialize Session State ---
 if 'video_info' not in st.session_state:
@@ -447,9 +447,6 @@ with tab1:
         with st.spinner("Fetching video information..."):
             try:
                 ydl_opts = {'quiet': True, 'no_warnings': True, 'skip_download': True}
-                # Add cookies to yt-dlp if provided
-                if cookies_path:
-                    ydl_opts['cookiefile'] = cookies_path
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=False)
                     st.session_state.video_info = info
@@ -572,10 +569,6 @@ with tab1:
         try:
             # Build command
             cmd = ["yt-dlp", "-o", os.path.join(temp_dir, "%(title)s.%(ext)s")]
-
-            # Add cookies if provided
-            if cookies_path:
-                cmd.extend(["--cookies", cookies_path])
 
             # Add format options
             if download_type == "Audio Only":
@@ -712,12 +705,6 @@ with tab1:
                 shutil.rmtree(temp_dir)
             except:
                 pass
-            # --- COOKIES CLEANUP ---
-            if cookies_path:
-                try:
-                    os.remove(cookies_path)
-                except:
-                    pass
 
             st.session_state.downloading = False
 
