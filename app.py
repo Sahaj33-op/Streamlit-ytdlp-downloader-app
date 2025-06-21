@@ -728,8 +728,11 @@ with tab2:
             results_container = st.container()
 
         # Function to download a single URL
-        def download_single_url(url, temp_dir, settings):
-            cmd = ["yt-dlp", "-o", os.path.join(temp_dir, "%(title)s-%(id)s.%(ext)s")]
+        def download_single_url(url, temp_dir, settings, task_id):
+            # Create unique subdirectory for each task
+            task_temp_dir = os.path.join(temp_dir, f"task_{task_id}")
+            os.makedirs(task_temp_dir, exist_ok=True)
+            cmd = ["yt-dlp", "-o", os.path.join(task_temp_dir, "%(title).100s-%(id)s.%(ext)s"), "--restrict-filenames"]
             download_type = settings.get('download_type', 'Video + Audio')
             quality = settings.get('quality', 'Best Available')
             audio_format = settings.get('audio_format', 'mp3')
@@ -772,24 +775,35 @@ with tab2:
                     title = "Unknown" if not title_match else os.path.basename(title_match.group(1))
                     if len(title) > 50:
                         title = title[:47] + "..."
-                    return {"url": url, "title": title, "status": "success"}
+                    # Collect downloaded files
+                    files = []
+                    for root, _, filenames in os.walk(task_temp_dir):
+                        for filename in filenames:
+                            file_path = os.path.join(root, filename)
+                            files.append((filename, file_path, os.path.getsize(file_path)))
+                    return {"url": url, "title": title, "status": "success", "files": files}
                 else:
                     error_msg = process.stderr or process.stdout
-                    return {"url": url, "title": "Failed", "status": "error", "error": error_msg[:100]}
+                    error_type, error_solution = categorize_error(error_msg)
+                    return {"url": url, "title": "Failed", "status": "error", "error": f"{error_type}: {error_solution}"}
             except subprocess.TimeoutExpired:
                 return {"url": url, "title": "Timeout", "status": "timeout"}
             except Exception as e:
-                return {"url": url, "title": "Error", "status": "error", "error": str(e)[:100]}
+                error_type, error_solution = categorize_error(str(e))
+                return {"url": url, "title": "Error", "status": "error", "error": f"{error_type}: {error_solution}"}
 
         # Process URLs in parallel
         success_count = 0
         fail_count = 0
         skip_count = 0
+        all_downloaded_files = []
         results = []
 
         with ThreadPoolExecutor(max_workers=batch_settings.get('parallel', 3)) as executor:
-            future_to_url = {executor.submit(download_single_url, url, batch_temp_dir, batch_settings): url
-                            for url in urls_to_process if validate_url(url)[0]}
+            future_to_url = {
+                executor.submit(download_single_url, url, batch_temp_dir, batch_settings, idx): url
+                for idx, url in enumerate(urls_to_process) if validate_url(url)[0]
+            }
             for idx, future in enumerate(as_completed(future_to_url), 1):
                 result = future.result()
                 results.append(result)
@@ -800,11 +814,12 @@ with tab2:
                     if result['status'] == "success":
                         st.success(f"✅ [{idx}/{total_urls}] {result['title']}")
                         success_count += 1
+                        all_downloaded_files.extend(result.get('files', []))
                         st.session_state.download_history.insert(0, {
                             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             "url": result['url'][:50] + "..." if len(result['url']) > 50 else result['url'],
                             "title": result['title'],
-                            "files": "Batch",
+                            "files": len(result.get('files', [])),
                             "status": "Success"
                         })
                     elif result['status'] == "timeout":
@@ -824,42 +839,34 @@ with tab2:
         # Final results
         overall_progress.progress(1.0)
         if success_count > 0:
-            current_status.success(f"🎉 Batch Complete! ✅ {success_count} succeeded, ❌ {fail_count} failed")
+            current_status.success(f"🎉 Batch Complete! ✅ {success_count} succeeded, ❌ {fail_count} failed, ⏭️ {skip_count} skipped")
         else:
-            current_status.error(f"❌ Batch Complete! No downloads succeeded. {fail_count} failed")
+            current_status.error(f"❌ Batch Complete! No downloads succeeded. {fail_count} failed, {skip_count} skipped")
 
         # Show downloadable files
-        if os.path.exists(batch_temp_dir):
-            downloadable_files = []
-            for root, dirs, files in os.walk(batch_temp_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    try:
-                        file_size = os.path.getsize(file_path)
-                        downloadable_files.append((file, file_path, file_size))
-                    except OSError:
-                        pass
-            if downloadable_files:
-                st.markdown("### 📦 Download Your Files")
-                st.markdown(f"**{len(downloadable_files)} file(s) ready for download:**")
-                downloadable_files.sort(key=lambda x: x[2], reverse=True)
-                for idx, (filename, file_path, file_size) in enumerate(downloadable_files, 1):
-                    col1, col2 = st.columns([4, 1])
-                    with col1:
-                        with open(file_path, "rb") as f:
-                            st.download_button(
-                                label=f"📥 {filename}",
-                                data=f.read(),
-                                file_name=filename,
-                                mime="application/octet-stream",
-                                key=f"batch_download_{idx}_{hash(file_path)}",
-                                use_container_width=True
-                            )
-                    with col2:
-                        size_mb = file_size / (1024 * 1024)
-                        st.markdown(f"**{size_mb:.1f} MB**")
-            else:
-                st.info("ℹ️ No files were successfully downloaded.")
+        if all_downloaded_files:
+            st.markdown("### 📦 Download Your Files")
+            st.markdown(f"**{len(all_downloaded_files)} file(s) ready for download:**")
+            all_downloaded_files.sort(key=lambda x: x[2], reverse=True)
+            for idx, (filename, file_path, file_size) in enumerate(all_downloaded_files, 1):
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    with open(file_path, "rb") as f:
+                        st.download_button(
+                            label=f"📥 {filename}",
+                            data=f.read(),
+                            file_name=filename,
+                            mime="application/octet-stream",
+                            key=f"batch_download_{idx}_{hash(file_path)}",
+                            use_container_width=True
+                        )
+                with col2:
+                    size_mb = file_size / (1024 * 1024)
+                    st.markdown(f"**{size_mb:.1f} MB**")
+        else:
+            st.info("ℹ️ No files were successfully downloaded.")
+
+        # Cleanup option
         st.markdown("---")
         cleanup_col1, cleanup_col2, cleanup_col3 = st.columns([1, 2, 1])
         with cleanup_col2:
