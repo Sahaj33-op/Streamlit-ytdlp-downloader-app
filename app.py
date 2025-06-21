@@ -613,7 +613,7 @@ with tab1:
 
 with tab2:
     st.markdown("### 🚀 Batch Download & Advanced Settings")
-    if st.session_state.get("batch_temp_dir") and not st.session_state.get("batch_download_trigger", False):
+    if st.session_state.get("batch_temp_dir") and not st.session_state.get("batch_download_trigger", False) and not st.session_state.get("batch_files_persisted", False):
         with st.spinner("Cleaning up previous session files..."):
             if cleanup_temp_dir_robust(st.session_state.batch_temp_dir):
                 st.session_state.batch_temp_dir = None
@@ -684,7 +684,12 @@ with tab2:
                     min_value=1, max_value=10, value=3,
                     help="Number of simultaneous downloads"
                 )
-    if urls_list and not st.session_state.get("batch_download_trigger", False):
+                batch_auto_download = st.checkbox(
+                    "🚀 Auto-Download Files",
+                    value=False,
+                    help="Automatically start downloading all files after batch completes (may trigger browser prompts)"
+                )
+    if urls_list and not st.session_state.get("batch_download_trigger", False) and not st.session_state.get("batch_files_persisted", False):
         st.markdown("---")
         estimated_time = len(urls_list) * 2 / (st.session_state.get('batch_parallel', 3) or 3)
         st.info(f"⏱️ Estimated time: ~{int(estimated_time)} minutes for {len(urls_list)} URL(s)")
@@ -708,8 +713,10 @@ with tab2:
                         'metadata': batch_metadata,
                         'max_size': batch_max_size,
                         'timeout': batch_timeout * 60,
-                        'parallel': batch_parallel
+                        'parallel': batch_parallel,
+                        'auto_download': batch_auto_download
                     }
+                    st.session_state.batch_files_persisted = False
                     st.rerun()
     if st.session_state.get("batch_download_trigger", False):
         urls_to_process = st.session_state.get("batch_urls_list", [])
@@ -729,7 +736,6 @@ with tab2:
 
         # Function to download a single URL
         def download_single_url(url, temp_dir, settings, task_id):
-            # Create unique subdirectory for each task
             task_temp_dir = os.path.join(temp_dir, f"task_{task_id}")
             os.makedirs(task_temp_dir, exist_ok=True)
             cmd = ["yt-dlp", "-o", os.path.join(task_temp_dir, "%(title).100s-%(id)s.%(ext)s"), "--restrict-filenames"]
@@ -775,7 +781,6 @@ with tab2:
                     title = "Unknown" if not title_match else os.path.basename(title_match.group(1))
                     if len(title) > 50:
                         title = title[:47] + "..."
-                    # Collect downloaded files
                     files = []
                     for root, _, filenames in os.walk(task_temp_dir):
                         for filename in filenames:
@@ -836,6 +841,12 @@ with tab2:
                             "status": "Failed"
                         })
 
+        # Store downloaded files in session state
+        st.session_state.batch_download_trigger = False
+        st.session_state.batch_urls_list = []
+        st.session_state.batch_files_persisted = True
+        st.session_state.batch_downloaded_files = all_downloaded_files
+
         # Final results
         overall_progress.progress(1.0)
         if success_count > 0:
@@ -843,41 +854,77 @@ with tab2:
         else:
             current_status.error(f"❌ Batch Complete! No downloads succeeded. {fail_count} failed, {skip_count} skipped")
 
-        # Show downloadable files
-        if all_downloaded_files:
-            st.markdown("### 📦 Download Your Files")
-            st.markdown(f"**{len(all_downloaded_files)} file(s) ready for download:**")
-            all_downloaded_files.sort(key=lambda x: x[2], reverse=True)
-            for idx, (filename, file_path, file_size) in enumerate(all_downloaded_files, 1):
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    with open(file_path, "rb") as f:
-                        st.download_button(
-                            label=f"📥 {filename}",
-                            data=f.read(),
-                            file_name=filename,
-                            mime="application/octet-stream",
-                            key=f"batch_download_{idx}_{hash(file_path)}",
-                            use_container_width=True
-                        )
-                with col2:
-                    size_mb = file_size / (1024 * 1024)
-                    st.markdown(f"**{size_mb:.1f} MB**")
-        else:
-            st.info("ℹ️ No files were successfully downloaded.")
+    # Display downloadable files if they exist in session state
+    if st.session_state.get("batch_files_persisted", False) and st.session_state.get("batch_downloaded_files", []):
+        all_downloaded_files = st.session_state.batch_downloaded_files
+        st.markdown("### 📦 Download Your Files")
+        st.markdown(f"**{len(all_downloaded_files)} file(s) ready for download:**")
+        all_downloaded_files.sort(key=lambda x: x[2], reverse=True)
+        # Generate base64 data for auto-download
+        auto_download_data = []
+        for idx, (filename, file_path, file_size) in enumerate(all_downloaded_files):
+            try:
+                with open(file_path, "rb") as f:
+                    file_data = f.read()
+                    b64 = base64.b64encode(file_data).decode()
+                    auto_download_data.append({"filename": filename, "b64": b64})
+            except Exception as e:
+                st.warning(f"⚠️ Could not read file {filename}: {str(e)}")
+                continue
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.download_button(
+                    label=f"📥 {filename}",
+                    data=file_data,
+                    file_name=filename,
+                    mime="application/octet-stream",
+                    key=f"batch_download_{idx}_{hash(file_path)}",
+                    use_container_width=True
+                )
+            with col2:
+                size_mb = file_size / (1024 * 1024)
+                st.markdown(f"**{size_mb:.1f} MB**")
+        # Auto-download script
+        if batch_settings.get('auto_download', False) and auto_download_data:
+            st.markdown("""
+                <script>
+                (function() {
+                    var files = """ + json.dumps(auto_download_data) + """;
+                    var index = 0;
+                    function downloadNext() {
+                        if (index >= files.length) return;
+                        var file = files[index];
+                        var link = document.createElement('a');
+                        link.href = 'data:application/octet-stream;base64,' + file.b64;
+                        link.download = file.filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        index++;
+                        if (index < files.length) {
+                            setTimeout(downloadNext, 1000);
+                        }
+                    }
+                    setTimeout(downloadNext, 500);
+                })();
+                </script>
+                """, unsafe_allow_html=True)
+            st.info("🚀 Auto-downloading files sequentially. Please allow pop-ups if prompted.")
 
-        # Cleanup option
+    # Cleanup option
+    if st.session_state.get("batch_files_persisted", False):
         st.markdown("---")
         cleanup_col1, cleanup_col2, cleanup_col3 = st.columns([1, 2, 1])
         with cleanup_col2:
             if st.button("🧹 Clean Up Server Files", use_container_width=True):
-                if cleanup_temp_dir_robust(batch_temp_dir):
+                if cleanup_temp_dir_robust(st.session_state.batch_temp_dir):
                     st.success("✅ Server files cleaned up!")
                     st.session_state.batch_temp_dir = None
+                    st.session_state.batch_files_persisted = False
+                    st.session_state.batch_downloaded_files = []
+                    st.rerun()
                 else:
                     st.error("❌ Failed to clean up some files.")
-        st.session_state.batch_download_trigger = False
-        st.session_state.batch_urls_list = []
     st.markdown("---")
     st.markdown("## 🔧 Advanced Settings")
     with st.expander("🌐 Network & Custom Settings"):
