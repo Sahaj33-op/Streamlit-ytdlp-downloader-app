@@ -376,19 +376,51 @@ def parse_progress(line):
     return progress_info
 
 def categorize_error(error_message):
-    """Categorize common yt-dlp errors"""
+    """Categorize common yt-dlp errors and provide solutions"""
     error_lower = error_message.lower()
     
-    if 'network' in error_lower or 'connection' in error_lower:
+    if 'network' in error_lower or 'connection' in error_lower or 'timeout' in error_lower:
         return "Network Error", "Check your internet connection and try again."
-    elif 'private' in error_lower or 'unavailable' in error_lower:
-        return "Content Unavailable", "The video may be private, deleted, or geo-restricted."
+    elif 'login' in error_lower or 'authentication' in error_lower or 'private' in error_lower:
+        if 'instagram' in error_lower and 'stories' in error_lower:
+            return "Instagram Story Restriction", "Instagram stories often require login, even for public accounts. Try downloading a public post or reel instead."
+        return "Authentication Required", "This content requires login, which is disabled for privacy. Try a different video."
     elif 'format' in error_lower and 'not available' in error_lower:
         return "Format Error", "Try a different quality setting."
     elif 'ffmpeg' in error_lower:
-        return "FFmpeg Error", "FFmpeg is required for this operation."
+        return "FFmpeg Error", "FFmpeg is required for this operation. Check the System tab to install it."
+    elif 'instagram' in error_lower:
+        return "Instagram Restriction", "Instagram content may have restrictions. Try a different URL or public content."
+    elif 'youtube' in error_lower:
+        return "YouTube Restriction", "Some YouTube videos are restricted (e.g., age-gated). Try a different video."
+    elif 'unsupported' in error_lower or 'not a valid' in error_lower:
+        return "URL Error", "The provided URL is invalid or from an unsupported site."
+    elif 'permission denied' in error_lower or 'cannot write' in error_lower:
+        return "Permission Error", "Check if you have write permissions to the output directory."
+    elif 'invalid option' in error_lower or 'unknown option' in error_lower:
+        return "Configuration Error", "There is an issue with the download settings. Please check the advanced options."
+    elif 'live stream' in error_lower or 'cannot download live' in error_lower:
+        return "Live Stream Error", "Live streams cannot be downloaded. Try a video that is not live."
+    elif 'rate limit' in error_lower or 'too many requests' in error_lower:
+        return "Rate Limit Error", "Too many requests. Please try again later."
+    elif 'video unavailable' in error_lower or 'deleted' in error_lower:
+        return "Content Error", "The video has been deleted or is unavailable."
+    elif 'no subtitles' in error_lower or 'subtitles not found' in error_lower:
+        return "Subtitle Error", "Subtitles are not available for this video."
+    elif 'disk full' in error_lower or 'no space left' in error_lower:
+        return "Disk Space Error", "Insufficient disk space. Free up some space and try again."
+    elif 'ssl' in error_lower or 'certificate' in error_lower:
+        return "SSL Error", "There is an issue with the SSL certificate. Try updating your certificates or check your network settings."
+    elif 'proxy' in error_lower:
+        return "Proxy Error", "There is an issue with the proxy settings. Check your proxy configuration."
+    elif 'invalid character' in error_lower or 'filename too long' in error_lower:
+        return "Filename Error", "The video title contains invalid characters or is too long. Try changing the filename template in advanced settings."
+    elif 'index out of range' in error_lower or 'invalid playlist index' in error_lower:
+        return "Playlist Error", "The specified playlist indices are invalid. Check the start and end numbers."
+    elif 'file too large' in error_lower or 'exceeds max size' in error_lower:
+        return "File Size Error", "The video exceeds the maximum file size limit. Try a lower quality or increase the limit."
     else:
-        return "Unknown Error", "An unexpected error occurred."
+        return "Unknown Error", "An unexpected error occurred. Please try again later or check the URL."
 
 # --- Initialize Session State ---
 if 'video_info' not in st.session_state:
@@ -458,6 +490,7 @@ with tab1:
             except Exception as e:
                 error_type, error_solution = categorize_error(str(e))
                 st.error(f"❌ {error_type}: {error_solution}")
+
 
     # Display Video Info
     if st.session_state.video_info:
@@ -560,8 +593,8 @@ with tab1:
 
         # Progress containers
         progress_bar = st.progress(0)
-        status_text = st.empty()
-        log_container = st.empty()
+        # status_text = st.empty()  # Remove status text
+        # log_container = st.empty()  # Remove log container
 
         # Create temporary directory
         temp_dir = tempfile.mkdtemp(prefix="ytdlp_")
@@ -634,25 +667,14 @@ with tab1:
                         if 'percent' in progress_info:
                             current_percent = progress_info['percent']
                             progress_bar.progress(current_percent / 100)
-
-                            status = f"Progress: {current_percent:.1f}%"
-                            if 'speed' in progress_info:
-                                status += f" | Speed: {progress_info['speed']}"
-                            if 'eta' in progress_info:
-                                status += f" | ETA: {progress_info['eta']}"
-
-                            status_text.text(status)
-
-                    # Show recent logs
-                    recent_logs = logs[-5:] if len(logs) > 5 else logs
-                    log_container.text_area("Download Log:", "\n".join(recent_logs), height=100, disabled=True)
+                    # No status or log display
 
             # Check result
             return_code = process.poll()
 
             if return_code == 0:
                 progress_bar.progress(1.0)
-                status_text.text("✅ Download completed successfully!")
+                # status_text.text("✅ Download started successfully!")  # Remove status text
 
                 # List downloaded files
                 downloaded_files = []
@@ -664,21 +686,73 @@ with tab1:
 
                 if downloaded_files:
                     st.success(f"🎉 Downloaded {len(downloaded_files)} file(s)!")
-
-                    for filename, file_path, size in downloaded_files:
-                        size_mb = size / (1024 * 1024)
-
+                    
+                    # Show download options
+                    st.markdown("### 📥 Download Files")
+                    
+                    # Option to enable auto-download
+                    auto_download = st.checkbox(
+                        "Enable automatic download", 
+                        value=False,
+                        help="Automatically start downloads (may cause browser popup)"
+                    )
+                    
+                    for i, (filename, file_path, size) in enumerate(downloaded_files):
                         col1, col2 = st.columns([3, 1])
+                        
                         with col1:
-                            st.write(f"📁 {filename} ({size_mb:.1f} MB)")
-                        with col2:
+                            # Always provide manual download button
                             with open(file_path, "rb") as f:
-                                st.download_button(
-                                    "💾 Download",
-                                    data=f.read(),
-                                    file_name=filename,
-                                    key=f"dl_{filename}"
-                                )
+                                file_data = f.read()
+                            
+                            st.download_button(
+                                label=f"📥 {filename} ({size // 1024 // 1024:.1f} MB)",
+                                data=file_data,
+                                file_name=filename,
+                                mime="application/octet-stream",
+                                key=f"download_btn_{i}",
+                                use_container_width=True
+                            )
+                        
+                        with col2:
+                            st.markdown(f"**{size // 1024 // 1024:.1f} MB**")
+                    
+                    # Lightweight auto-download only if enabled
+                    if auto_download and len(downloaded_files) == 1:
+                        # Only auto-download for single files to avoid UI issues
+                        filename, file_path, size = downloaded_files[0]
+                        with open(file_path, "rb") as f:
+                            import base64
+                            b64 = base64.b64encode(f.read()).decode()
+                        
+                        # Simple, one-time auto-download script
+                        st.markdown(
+                            f"""
+                            <script>
+                            (function() {{
+                                var executed = false;
+                                function autoDownload() {{
+                                    if (executed) return;
+                                    executed = true;
+                                    
+                                    var link = document.createElement('a');
+                                    link.href = 'data:application/octet-stream;base64,{b64}';
+                                    link.download = '{filename}';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                }}
+                                
+                                // Single attempt after short delay
+                                setTimeout(autoDownload, 500);
+                            }})();
+                            </script>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        st.info("🚀 Auto-download started! Check your downloads folder.")
+                    elif auto_download and len(downloaded_files) > 1:
+                        st.warning("⚠️ Auto-download is disabled for multiple files to prevent browser issues. Please use the download buttons above.")
 
                     # Add to history
                     st.session_state.download_history.insert(0, {
@@ -713,239 +787,378 @@ with tab1:
 
 # --- TAB 2: ADVANCED OPTIONS ---
 with tab2:
-    st.markdown("### 🔧 Advanced Settings")
+    st.markdown("### 🚀 Batch Download & Advanced Settings")
 
     # --- Automatic Cleanup Logic (Runs on session start/rerun if not active) ---
     if st.session_state.get("batch_temp_dir") and not st.session_state.get("batch_download_trigger", False):
-        st.info("Checking for leftover temporary files from a previous session...")
-        if cleanup_temp_dir_robust(st.session_state.batch_temp_dir):
-            st.session_state.batch_temp_dir = None
-            st.success("Cleaned up old temporary files.")
-        else:
-            st.warning("Could not clean up all old temporary files. Some might remain until the server restarts.")
+        with st.spinner("Cleaning up previous session files..."):
+            if cleanup_temp_dir_robust(st.session_state.batch_temp_dir):
+                st.session_state.batch_temp_dir = None
+                st.success("✅ Cleaned up old temporary files.")
+            else:
+                st.warning("⚠️ Could not clean up all old temporary files. Some might remain until the server restarts.")
 
-    col1, col2 = st.columns(2)
-
-    with col2:
-        st.markdown("#### 📁 Custom & Post-processing Settings")
-
-        custom_format = st.text_input(
-            "Custom Format String (`-f`):",
-            help="Advanced yt-dlp format selector (e.g., 'bv*+ba/b'). Overrides quality/format selections."
-        )
-
-        filename_template = st.text_input(
-            "Filename Template (`-o`):",
-            value="%(title)s.%(ext)s",
-            help="Customize output filename using yt-dlp's template variables."
-        )
-
-        st.checkbox("Embed Subtitles (if available)", key="advanced_embed_subs", value=False)
-        st.checkbox("Embed Thumbnail (if available)", key="advanced_embed_thumb", value=False)
-
-        st.markdown("#### 🌐 Network Settings")
-
-        use_proxy = st.checkbox("Use Proxy (`--proxy`)")
-        proxy_url = ""
-        if use_proxy:
-            proxy_url = st.text_input("Proxy URL:", placeholder="http://proxy:port or socks5://user:pass@host:port")
-
-        rate_limit = st.slider("Rate Limit (KB/s) (`--limit-rate`)", 0, 10000, 0, step=100, help="0 = no limit")
-
-
+    # --- BATCH DOWNLOAD SECTION ---
+    st.markdown("## 📦 Batch Download")
+    st.markdown("Download multiple videos at once with the same settings.")
+    
+    # Batch URL Input
+    col1, col2 = st.columns([2, 1])
+    
     with col1:
-        st.markdown("#### 🎯 Batch Download")
         batch_urls = st.text_area(
-            "Multiple URLs (one per line):",
-            height=200,
-            help="Enter multiple URLs for batch downloading. Each URL will be processed sequentially."
+            "📝 Video URLs (one per line)",
+            height=150,
+            placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ\nhttps://www.youtube.com/watch?v=example2\nhttps://www.youtube.com/watch?v=example3",
+            help="Enter multiple URLs for batch downloading. Each URL will be processed with the same settings."
         )
-
+        
         urls_list = [u.strip() for u in batch_urls.split('\n') if u.strip()]
-
+        
         if urls_list:
-            st.info(f"Found {len(urls_list)} URLs for batch download.")
+            if len(urls_list) == 1:
+                st.info(f"📄 {len(urls_list)} URL ready for download")
+            else:
+                st.info(f"📄 {len(urls_list)} URLs ready for batch download")
+    
+    with col2:
+        if urls_list:
+            st.markdown("**📊 Quick Preview:**")
+            for i, url in enumerate(urls_list[:3], 1):
+                domain = url.split('/')[2] if '/' in url else url
+                st.text(f"{i}. {domain}")
+            if len(urls_list) > 3:
+                st.text(f"... and {len(urls_list) - 3} more")
 
-            # Only show button if there are URLs and no download is active
-            if not st.session_state.get("batch_download_trigger", False):
-                if st.button("🚀 Start Batch Download", key="start_batch_btn"):
+    # Batch Download Settings
+    if urls_list:
+        st.markdown("### ⚙️ Batch Download Settings")
+        
+        setting_col1, setting_col2, setting_col3 = st.columns(3)
+        
+        with setting_col1:
+            batch_download_type = st.selectbox(
+                "📹 Download Type",
+                ["Video + Audio", "Audio Only", "Video Only"],
+                help="What to download for all URLs"
+            )
+        
+        with setting_col2:
+            if batch_download_type != "Audio Only":
+                batch_quality = st.selectbox(
+                    "🎯 Video Quality",
+                    ["Best Available", "1080p", "720p", "480p", "360p"],
+                    help="Video quality for all downloads"
+                )
+            else:
+                batch_quality = "Best Available"
+        
+        with setting_col3:
+            if batch_download_type == "Audio Only":
+                batch_audio_format = st.selectbox(
+                    "🎵 Audio Format",
+                    ["mp3", "aac", "m4a", "opus", "flac"],
+                    help="Audio format for all downloads"
+                )
+            else:
+                batch_audio_format = "mp3"
+        
+        # Additional Batch Options
+        with st.expander("🔧 Additional Batch Options"):
+            batch_col1, batch_col2 = st.columns(2)
+            
+            with batch_col1:
+                batch_subs = st.checkbox("📝 Download Subtitles")
+                batch_thumbnail = st.checkbox("🖼️ Download Thumbnails")
+                batch_metadata = st.checkbox("📋 Add Metadata", disabled=not deps.get('ffmpeg', False))
+            
+            with batch_col2:
+                batch_max_size = st.selectbox(
+                    "📏 Max File Size (per file)",
+                    ["No Limit", "100MB", "500MB", "1GB", "2GB"]
+                )
+                batch_timeout = st.slider(
+                    "⏱️ Timeout per URL (minutes)",
+                    min_value=5, max_value=30, value=15,
+                    help="How long to wait for each download before timing out"
+                )
+    
+    # Download Controls
+    if urls_list and not st.session_state.get("batch_download_trigger", False):
+        st.markdown("---")
+        
+        # Estimate and warning
+        estimated_time = len(urls_list) * 2  # Rough estimate: 2 minutes per URL
+        st.info(f"⏱️ Estimated time: ~{estimated_time} minutes for {len(urls_list)} URL(s)")
+        
+        if len(urls_list) > 10:
+            st.warning("⚠️ Large batch detected! Consider splitting into smaller batches if you experience issues.")
+        
+        # Start button
+        start_col1, start_col2, start_col3 = st.columns([1, 2, 1])
+        with start_col2:
+            if st.button("🚀 Start Batch Download", type="primary", use_container_width=True):
+                if not deps.get('yt-dlp', False):
+                    st.error("❌ yt-dlp is required but not installed!")
+                else:
                     st.session_state.batch_download_trigger = True
                     st.session_state.batch_urls_list = urls_list
-                    # Create a single temporary directory for the entire batch
                     st.session_state.batch_temp_dir = tempfile.mkdtemp(prefix="ytdlp_batch_")
-                    st.rerun() # Rerun to trigger the download logic
-            else:
-                st.info("Batch download in progress...")
+                    # Store batch settings
+                    st.session_state.batch_settings = {
+                        'download_type': batch_download_type,
+                        'quality': batch_quality,
+                        'audio_format': batch_audio_format,
+                        'subs': batch_subs,
+                        'thumbnail': batch_thumbnail,
+                        'metadata': batch_metadata,
+                        'max_size': batch_max_size,
+                        'timeout': batch_timeout * 60  # Convert to seconds
+                    }
+                    st.rerun()
 
-            # Run batch download if triggered
-            if st.session_state.get("batch_download_trigger", False):
-                urls_to_process = st.session_state.get("batch_urls_list", [])
-                batch_overall_temp_dir = st.session_state.get("batch_temp_dir")
-
-                total_urls = len(urls_to_process)
-                success_count = 0
-                fail_count = 0
-                batch_logs = []
-                batch_downloaded_files_info = [] # Store (title, list of (file, path, size))
-
-                st.markdown("---")
-                st.markdown("### 🗂️ Batch Download Progress")
-
-                # Progress bar for overall batch
-                progress_text_placeholder = st.empty()
-                progress_bar_placeholder = st.progress(0)
-
-                for idx, url in enumerate(urls_to_process, 1):
-                    current_progress = (idx - 1) / total_urls
-                    progress_bar_placeholder.progress(current_progress)
-                    progress_text_placeholder.text(f"Processing URL {idx}/{total_urls}: {url[:70]}...")
-
-                    is_valid, msg = validate_url(url)
-
-                    if not is_valid:
-                        st.error(f"❌ Skipping invalid URL [{idx}/{total_urls}]: {url} ({msg})")
-                        fail_count += 1
-                        st.session_state.download_history.insert(0, {
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "url": url[:50] + "..." if len(url) > 50 else url,
-                            "title": "N/A (Invalid URL)",
-                            "files": 0,
-                            "status": "Failed"
-                        })
-                        continue
-
-                    # Build yt-dlp command
-                    cmd_list = ["yt-dlp"]
-
-                    # Convert Streamlit options to yt-dlp CLI arguments
-                    if custom_format:
-                        cmd_list.extend(["-f", custom_format])
-
-                    if use_proxy and proxy_url:
-                        cmd_list.extend(["--proxy", proxy_url])
-
-                    if rate_limit > 0:
-                        cmd_list.extend(["--limit-rate", f"{rate_limit}K"]) # yt-dlp uses K for KB/s
-
-                    if filename_template:
-                        cmd_list.extend(["-o", os.path.join(batch_overall_temp_dir, filename_template)])
-                    else:
-                        cmd_list.extend(["-o", os.path.join(batch_overall_temp_dir, "%(title)s.%(ext)s")])
-
-                    if st.session_state.advanced_embed_subs:
-                        cmd_list.append("--embed-subs")
-                    if st.session_state.advanced_embed_thumb:
-                        cmd_list.append("--embed-thumbnail")
-
-                    cmd_list.append(url)
-
+    # Batch Download Process
+    if st.session_state.get("batch_download_trigger", False):
+        urls_to_process = st.session_state.get("batch_urls_list", [])
+        batch_temp_dir = st.session_state.get("batch_temp_dir")
+        batch_settings = st.session_state.get("batch_settings", {})
+        
+        total_urls = len(urls_to_process)
+        
+        st.markdown("---")
+        st.markdown("## 📥 Batch Download in Progress")
+        st.markdown(f"Processing {total_urls} URL(s) with your selected settings...")
+        
+        # Progress tracking
+        progress_container = st.container()
+        with progress_container:
+            overall_progress = st.progress(0)
+            current_status = st.empty()
+            results_container = st.container()
+        
+        # Results tracking
+        success_count = 0
+        fail_count = 0
+        skip_count = 0
+        downloaded_files = []
+        
+        # Process each URL
+        for idx, url in enumerate(urls_to_process, 1):
+            current_progress = (idx - 1) / total_urls
+            overall_progress.progress(current_progress)
+            current_status.info(f"🔄 Processing {idx}/{total_urls}: {url[:60]}...")
+            
+            # Validate URL
+            is_valid, validation_msg = validate_url(url)
+            if not is_valid:
+                with results_container:
+                    st.error(f"❌ [{idx}/{total_urls}] Invalid URL: {validation_msg}")
+                skip_count += 1
+                continue
+            
+            # Build yt-dlp command
+            cmd = ["yt-dlp", "-o", os.path.join(batch_temp_dir, "%(title)s.%(ext)s")]
+            
+            # Apply format settings
+            download_type = batch_settings.get('download_type', 'Video + Audio')
+            quality = batch_settings.get('quality', 'Best Available')
+            audio_format = batch_settings.get('audio_format', 'mp3')
+            
+            if download_type == "Audio Only":
+                cmd.extend(["-x", "--audio-format", audio_format])
+            elif download_type == "Video Only":
+                cmd.extend(["-f", "bestvideo"])
+            else:  # Video + Audio
+                if quality != "Best Available":
+                    quality_map = {
+                        "1080p": "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+                        "720p": "bestvideo[height<=720]+bestaudio/best[height<=720]",
+                        "480p": "bestvideo[height<=480]+bestaudio/best[height<=480]",
+                        "360p": "bestvideo[height<=360]+bestaudio/best[height<=360]"
+                    }
+                    cmd.extend(["-f", quality_map.get(quality, "best")])
+            
+            # Additional options
+            if batch_settings.get('subs', False):
+                cmd.extend(["--write-sub", "--sub-langs", "en"])
+            if batch_settings.get('thumbnail', False):
+                cmd.append("--write-thumbnail")
+            if batch_settings.get('metadata', False) and deps.get('ffmpeg', False):
+                cmd.append("--add-metadata")
+            
+            # File size limit
+            max_size = batch_settings.get('max_size', 'No Limit')
+            if max_size != "No Limit":
+                size_map = {"100MB": "100m", "500MB": "500m", "1GB": "1000m", "2GB": "2000m"}
+                cmd.extend(["--max-filesize", size_map[max_size]])
+            
+            cmd.append(url)
+            
+            # Execute download
+            try:
+                process = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=batch_settings.get('timeout', 900)
+                )
+                
+                if process.returncode == 0:
+                    # Extract title from output
+                    title_match = re.search(r'\[download\] (.+?) has already been downloaded', process.stdout) or \
+                                 re.search(r'\[download\] Destination: (.+)', process.stdout) or \
+                                 re.search(r'(.+)', process.stdout.split('\n')[0])
+                    
+                    title = "Unknown"
+                    if title_match:
+                        title = os.path.basename(title_match.group(1))
+                        if len(title) > 50:
+                            title = title[:47] + "..."
+                    
+                    with results_container:
+                        st.success(f"✅ [{idx}/{total_urls}] {title}")
+                    success_count += 1
+                    
+                    # Add to history
+                    st.session_state.download_history.insert(0, {
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "url": url[:50] + "..." if len(url) > 50 else url,
+                        "title": title,
+                        "files": "Batch",
+                        "status": "Success"
+                    })
+                    
+                else:
+                    error_msg = process.stderr or process.stdout
+                    with results_container:
+                        st.error(f"❌ [{idx}/{total_urls}] Download failed: {error_msg[:100]}...")
+                    fail_count += 1
+                    
+                    # Add to history
+                    st.session_state.download_history.insert(0, {
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "url": url[:50] + "..." if len(url) > 50 else url,
+                        "title": "Failed",
+                        "files": 0,
+                        "status": "Failed"
+                    })
+                    
+            except subprocess.TimeoutExpired:
+                with results_container:
+                    st.error(f"⏱️ [{idx}/{total_urls}] Timeout - took longer than {batch_settings.get('timeout', 900)//60} minutes")
+                fail_count += 1
+            except Exception as e:
+                with results_container:
+                    st.error(f"💥 [{idx}/{total_urls}] Error: {str(e)[:100]}...")
+                fail_count += 1
+        
+        # Final results
+        overall_progress.progress(1.0)
+        
+        # Results summary
+        if success_count > 0:
+            current_status.success(f"🎉 Batch Complete! ✅ {success_count} succeeded, ❌ {fail_count} failed, ⏭️ {skip_count} skipped")
+        else:
+            current_status.error(f"❌ Batch Complete! No downloads succeeded. {fail_count} failed, {skip_count} skipped")
+        
+        # Show downloadable files
+        if os.path.exists(batch_temp_dir):
+            downloadable_files = []
+            for root, dirs, files in os.walk(batch_temp_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
                     try:
-                        process = subprocess.run(
-                            cmd_list,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            text=True,
-                            timeout=900
-                        )
-                        output_stdout = process.stdout
-                        output_stderr = process.stderr
-                        full_output = output_stdout + output_stderr
-
-                        # Attempt to extract title/filename from yt-dlp output
-                        title_match = re.search(r'\[download\] Destination:\s*(.+)', full_output)
-                        title = title_match.group(1).split(os.sep)[-1] if title_match else url[:60] + "..."
-
-                        if process.returncode == 0:
-                            st.success(f"✅ [{idx}/{total_urls}] Downloaded: {title}")
-                            success_count += 1
-                            st.session_state.download_history.insert(0, {
-                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                "url": url[:50] + "..." if len(url) > 50 else url,
-                                "title": title,
-                                "files": "N/A (Batch)",
-                                "status": "Success"
-                            })
-                        else:
-                            error_message = output_stderr if output_stderr else full_output[-500:]
-                            st.error(f"❌ [{idx}/{total_urls}] Failed: {title}\n\n```\n{error_message}\n```")
-                            fail_count += 1
-                            st.session_state.download_history.insert(0, {
-                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                "url": url[:50] + "..." if len(url) > 50 else url,
-                                "title": title,
-                                "files": 0,
-                                "status": "Failed"
-                            })
-                        batch_logs.append(full_output)
-                    except subprocess.TimeoutExpired:
-                        st.error(f"❌ [{idx}/{total_urls}] Timeout: Download for {url} took too long.")
-                        fail_count += 1
-                        batch_logs.append(f"Timeout occurred for URL: {url}")
-                        st.session_state.download_history.insert(0, {
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "url": url[:50] + "..." if len(url) > 50 else url,
-                            "title": "N/A (Timeout)",
-                            "files": 0,
-                            "status": "Failed"
-                        })
-                    except Exception as e:
-                        st.error(f"❌ [{idx}/{total_urls}] Error processing {url}: {str(e)}")
-                        fail_count += 1
-                        batch_logs.append(f"General error for URL {url}: {str(e)}")
-                        st.session_state.download_history.insert(0, {
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "url": url[:50] + "..." if len(url) > 50 else url,
-                            "title": "N/A (Error)",
-                            "files": 0,
-                            "status": "Failed"
-                        })
-
-                progress_bar_placeholder.progress(1.0)
-                progress_text_placeholder.text(f"Batch processing complete! ✅ {success_count} succeeded, ❌ {fail_count} failed out of {total_urls}.")
-
-                # --- Show download buttons for all files from the batch temp dir ---
-                downloadable_files_info = []
-                if os.path.exists(batch_overall_temp_dir):
-                    for root, dirs, files in os.walk(batch_overall_temp_dir):
-                        for file_name in files:
-                            file_path = os.path.join(root, file_name)
-                            try:
-                                file_size = os.path.getsize(file_path)
-                                downloadable_files_info.append((file_name, file_path, file_size))
-                            except OSError:
-                                pass
-
-                if downloadable_files_info:
-                    st.markdown("### 💾 Download Your Batch Files")
-                    for idx, (file, file_path, file_size) in enumerate(downloadable_files_info, 1):
-                        size_mb = file_size / (1024 * 1024)
+                        file_size = os.path.getsize(file_path)
+                        downloadable_files.append((file, file_path, file_size))
+                    except OSError:
+                        pass
+            
+            if downloadable_files:
+                st.markdown("### 📦 Download Your Files")
+                st.markdown(f"**{len(downloadable_files)} file(s) ready for download:**")
+                
+                # Sort files by size (largest first)
+                downloadable_files.sort(key=lambda x: x[2], reverse=True)
+                
+                for idx, (filename, file_path, file_size) in enumerate(downloadable_files, 1):
+                    col1, col2 = st.columns([4, 1])
+                    
+                    with col1:
                         with open(file_path, "rb") as f:
                             st.download_button(
-                                label=f"💾 Download {file} ({size_mb:.1f} MB)",
+                                label=f"📥 {filename}",
                                 data=f.read(),
-                                file_name=file,
-                                key=f"batch_dl_{idx}_{file_path.replace('.', '').replace('/', '').replace('\\', '')}"
+                                file_name=filename,
+                                mime="application/octet-stream",
+                                key=f"batch_download_{idx}_{hash(file_path)}",
+                                use_container_width=True
                             )
-                else:
-                    st.info("No files were successfully downloaded in this batch.")
-
-
-                with st.expander("Show Detailed Batch Logs"):
-                    for i, log in enumerate(batch_logs):
-                        st.text_area(f"Log for item #{i+1}", log, height=150, key=f"batch_log_{i}")
-
-                # --- Manual Cleanup Button ---
-                if st.button("Clean up downloaded files from server", help="This will remove the temporary files from the server after you've downloaded them.", key="cleanup_batch_btn_manual"):
-                    if cleanup_temp_dir_robust(batch_overall_temp_dir):
-                        st.success("Temporary batch files cleaned up!")
-                    else:
-                        st.error("Failed to clean up temporary batch files. Please try again or check server logs.")
+                    
+                    with col2:
+                        size_mb = file_size / (1024 * 1024)
+                        st.markdown(f"**{size_mb:.1f} MB**")
+            else:
+                st.info("ℹ️ No files were successfully downloaded.")
+        
+        # Cleanup option
+        st.markdown("---")
+        cleanup_col1, cleanup_col2, cleanup_col3 = st.columns([1, 2, 1])
+        with cleanup_col2:
+            if st.button("🧹 Clean Up Server Files", help="Remove temporary files from server after downloading", use_container_width=True):
+                if cleanup_temp_dir_robust(batch_temp_dir):
+                    st.success("✅ Server files cleaned up!")
                     st.session_state.batch_temp_dir = None
+                else:
+                    st.error("❌ Failed to clean up some files.")
+        
+        # Reset for next batch
+        st.session_state.batch_download_trigger = False
+        st.session_state.batch_urls_list = []
 
-                # Reset trigger and URLs list so it doesn't rerun a finished batch
-                st.session_state.batch_download_trigger = False
-                st.session_state.batch_urls_list = []
+    # --- ADVANCED SETTINGS SECTION ---
+    st.markdown("---")
+    st.markdown("## 🔧 Advanced Settings")
+    st.markdown("For power users who need custom options.")
     
+    with st.expander("🌐 Network & Custom Settings"):
+        adv_col1, adv_col2 = st.columns(2)
+        
+        with adv_col1:
+            st.markdown("**🌐 Network Options**")
+            use_proxy = st.checkbox("Use Proxy")
+            if use_proxy:
+                proxy_url = st.text_input("Proxy URL:", placeholder="http://proxy:port")
+            else:
+                proxy_url = ""
+            
+            rate_limit = st.slider("Rate Limit (KB/s)", 0, 10000, 0, step=100, help="0 = no limit")
+        
+        with adv_col2:
+            st.markdown("**🎛️ Custom Format**")
+            custom_format = st.text_input(
+                "Custom Format String:",
+                placeholder="bv*+ba/b",
+                help="Advanced yt-dlp format selector. Overrides quality settings."
+            )
+            
+            filename_template = st.text_input(
+                "Filename Template:",
+                value="%(title)s.%(ext)s",
+                help="Customize output filename using yt-dlp variables."
+            )
+        
+        if custom_format or use_proxy or rate_limit > 0:
+            st.info("💡 These advanced settings will be applied to single downloads from the main tab.")
+
+    # Store advanced settings for use in main tab
+    st.session_state.advanced_settings = {
+        'custom_format': custom_format,
+        'filename_template': filename_template,
+        'use_proxy': use_proxy,
+        'proxy_url': proxy_url,
+        'rate_limit': rate_limit
+    }  
     
 
 # --- TAB 3: MONITOR ---
