@@ -64,37 +64,58 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+    /* Base Styles */
     .stApp {
         background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
         color: #ffffff;
+        min-height: 100vh;
     }
+    
+    /* Hide Streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+    
+    /* Main Header */
     .main-header {
         text-align: center;
         padding: 2rem 0;
         background: linear-gradient(90deg, #00d4aa, #00a8ff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        background-clip: text;
         font-size: 3rem;
         font-weight: bold;
         margin-bottom: 2rem;
         text-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
+    
     .sub-header {
         text-align: center;
         color: #a0a0a0;
         font-size: 1.2rem;
         margin-bottom: 3rem;
+        padding: 0 1rem;
     }
+    
+    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
         background-color: #1a1a2e;
         border-radius: 12px;
         padding: 8px;
         margin-bottom: 2rem;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
     }
+    
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
+        display: none;
+    }
+    
     .stTabs [data-baseweb="tab"] {
         height: 60px;
         padding: 0px 24px;
@@ -104,18 +125,24 @@ st.markdown("""
         font-weight: 600;
         border: 2px solid transparent;
         transition: all 0.3s ease;
+        white-space: nowrap;
+        min-width: fit-content;
     }
+    
     .stTabs [data-baseweb="tab"]:hover {
         background-color: #40407a;
         border-color: #00d4aa;
         transform: translateY(-2px);
     }
+    
     .stTabs [aria-selected="true"] {
         background: linear-gradient(135deg, #00d4aa, #00a8ff) !important;
         color: #000000 !important;
         font-weight: bold;
         box-shadow: 0 4px 15px rgba(0, 212, 170, 0.4);
     }
+    
+    /* Cards */
     .info-card {
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
@@ -125,6 +152,7 @@ st.markdown("""
         margin: 1rem 0;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
+    
     .status-card {
         background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(0, 168, 255, 0.1));
         border: 1px solid rgba(0, 212, 170, 0.3);
@@ -132,6 +160,7 @@ st.markdown("""
         padding: 1rem;
         margin: 0.5rem 0;
     }
+    
     .error-card {
         background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 69, 69, 0.1));
         border: 1px solid rgba(255, 107, 107, 0.3);
@@ -139,6 +168,8 @@ st.markdown("""
         padding: 1rem;
         margin: 0.5rem 0;
     }
+    
+    /* Form Elements */
     .stTextInput > div > div > input,
     .stSelectbox > div > div > div,
     .stNumberInput > div > div > input {
@@ -147,29 +178,44 @@ st.markdown("""
         border-radius: 8px;
         color: #ffffff;
         backdrop-filter: blur(5px);
+        font-size: 16px; /* Prevents zoom on iOS */
     }
+    
     .stTextInput > div > div > input:focus,
     .stSelectbox > div > div > div:focus {
         border-color: #00d4aa;
         box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.2);
     }
+    
+    /* Buttons */
     .stButton > button {
         background: linear-gradient(135deg, #00d4aa, #00a8ff);
         color: #000000;
         border: none;
         border-radius: 8px;
-        padding: 0.5rem 1.5rem;
+        padding: 0.75rem 1.5rem;
         font-weight: bold;
         transition: all 0.3s ease;
         box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
+        min-height: 44px; /* Touch-friendly */
+        font-size: 16px;
     }
+    
     .stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(0, 212, 170, 0.4);
     }
+    
+    .stButton > button:active {
+        transform: translateY(0);
+    }
+    
+    /* Progress Bar */
     .stProgress > div > div > div > div {
         background: linear-gradient(90deg, #00d4aa, #00a8ff);
     }
+    
+    /* Metrics */
     [data-testid="metric-container"] {
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -177,29 +223,41 @@ st.markdown("""
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
-    .css-1d391kg {
-        background-color: #1a1a2e;
-    }
+    
+    /* Status Messages */
     .stSuccess {
         background-color: rgba(0, 212, 170, 0.1);
         border: 1px solid #00d4aa;
         color: #00d4aa;
+        border-radius: 8px;
+        padding: 1rem;
     }
+    
     .stError {
         background-color: rgba(255, 107, 107, 0.1);
         border: 1px solid #ff6b6b;
         color: #ff6b6b;
+        border-radius: 8px;
+        padding: 1rem;
     }
+    
     .stWarning {
         background-color: rgba(255, 206, 84, 0.1);
         border: 1px solid #ffce54;
         color: #ffce54;
+        border-radius: 8px;
+        padding: 1rem;
     }
+    
     .stInfo {
         background-color: rgba(0, 168, 255, 0.1);
         border: 1px solid #00a8ff;
         color: #00a8ff;
+        border-radius: 8px;
+        padding: 1rem;
     }
+    
+    /* Quick Actions */
     .quick-action {
         background: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -208,12 +266,19 @@ st.markdown("""
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
+    
     .quick-action:hover {
         background: rgba(0, 212, 170, 0.2);
         border-color: #00d4aa;
         transform: translateY(-2px);
     }
+    
+    /* Dependency Status */
     .dep-available {
         background: linear-gradient(135deg, #00d4aa, #26de81);
         color: #000000;
@@ -222,6 +287,7 @@ st.markdown("""
         font-size: 0.8rem;
         font-weight: bold;
     }
+    
     .dep-missing {
         background: linear-gradient(135deg, #ff6b6b, #ff5252);
         color: #ffffff;
@@ -230,6 +296,8 @@ st.markdown("""
         font-size: 0.8rem;
         font-weight: bold;
     }
+    
+    /* Video Info */
     .video-info {
         background: rgba(255, 255, 255, 0.08);
         border-radius: 12px;
@@ -237,12 +305,17 @@ st.markdown("""
         margin: 1rem 0;
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
+    
     .video-title {
         font-size: 1.4rem;
         font-weight: bold;
         color: #00d4aa;
         margin-bottom: 0.5rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
+    
+    /* Loading Animation */
     .loading {
         display: inline-block;
         width: 20px;
@@ -252,8 +325,288 @@ st.markdown("""
         border-top-color: #00d4aa;
         animation: spin 1s ease-in-out infinite;
     }
+    
     @keyframes spin {
         to { transform: rotate(360deg); }
+    }
+    
+    /* Floating Actions */
+    .floating-actions {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .floating-btn {
+        background: linear-gradient(135deg, #00d4aa, #00a8ff);
+        color: #000000;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 20px;
+        font-weight: bold;
+        box-shadow: 0 4px 20px rgba(0, 212, 170, 0.4);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .floating-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(0, 212, 170, 0.5);
+    }
+    
+    /* Mobile Responsive Design */
+    @media (max-width: 1200px) {
+        .main-header { font-size: 2.5rem !important; }
+        .sub-header { font-size: 1.1rem !important; }
+    }
+    
+    @media (max-width: 768px) {
+        .main-header { 
+            font-size: 2rem !important; 
+            padding: 1.5rem 0 !important;
+            margin-bottom: 1.5rem !important;
+        }
+        .sub-header { 
+            font-size: 1rem !important; 
+            margin-bottom: 2rem !important;
+        }
+        .stTabs [data-baseweb="tab"] { 
+            padding: 0px 16px !important; 
+            font-size: 0.9rem !important;
+            height: 50px !important;
+        }
+        .stTabs [data-baseweb="tab-list"] {
+            padding: 6px !important;
+            gap: 6px !important;
+        }
+        .video-info { 
+            padding: 1rem !important; 
+            margin: 0.5rem 0 !important;
+        }
+        .video-title {
+            font-size: 1.2rem !important;
+        }
+        .floating-actions { 
+            bottom: 80px !important; 
+            right: 10px !important;
+        }
+        .floating-btn {
+            padding: 10px 16px !important;
+            font-size: 0.9rem !important;
+        }
+        .info-card {
+            padding: 1rem !important;
+            margin: 0.5rem 0 !important;
+        }
+        .stButton > button {
+            padding: 0.75rem 1rem !important;
+            font-size: 14px !important;
+        }
+        /* Stack columns on mobile */
+        .stTabs [data-baseweb="tab-list"] {
+            flex-direction: column;
+            gap: 4px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .main-header { 
+            font-size: 1.5rem !important; 
+            padding: 1rem 0 !important;
+        }
+        .sub-header { 
+            font-size: 0.9rem !important; 
+            margin-bottom: 1.5rem !important;
+        }
+        .stTabs [data-baseweb="tab"] { 
+            padding: 0px 12px !important; 
+            font-size: 0.8rem !important;
+            height: 45px !important;
+        }
+        .video-title {
+            font-size: 1.1rem !important;
+        }
+        .floating-actions { 
+            bottom: 70px !important; 
+            right: 5px !important;
+        }
+        .floating-btn {
+            padding: 8px 12px !important;
+            font-size: 0.8rem !important;
+            min-height: 40px !important;
+        }
+        .info-card {
+            padding: 0.75rem !important;
+            border-radius: 8px !important;
+        }
+        .stButton > button {
+            padding: 0.6rem 0.8rem !important;
+            font-size: 13px !important;
+            min-height: 40px !important;
+        }
+        /* Improve touch targets */
+        .stTextInput > div > div > input,
+        .stSelectbox > div > div > div,
+        .stNumberInput > div > div > input {
+            min-height: 44px !important;
+            font-size: 16px !important;
+        }
+        /* Better spacing for mobile */
+        .stMarkdown {
+            margin-bottom: 0.5rem !important;
+        }
+        /* Optimize for portrait mode */
+        .stApp {
+            padding: 0.5rem !important;
+        }
+    }
+    
+    @media (max-width: 360px) {
+        .main-header { 
+            font-size: 1.3rem !important; 
+        }
+        .sub-header { 
+            font-size: 0.8rem !important; 
+        }
+        .stTabs [data-baseweb="tab"] { 
+            padding: 0px 8px !important; 
+            font-size: 0.75rem !important;
+            height: 40px !important;
+        }
+        .floating-btn {
+            padding: 6px 10px !important;
+            font-size: 0.75rem !important;
+            min-height: 36px !important;
+        }
+    }
+    
+    /* Landscape mode optimizations */
+    @media (max-height: 500px) and (orientation: landscape) {
+        .main-header { 
+            font-size: 1.5rem !important; 
+            padding: 0.5rem 0 !important;
+            margin-bottom: 1rem !important;
+        }
+        .sub-header { 
+            font-size: 0.9rem !important; 
+            margin-bottom: 1rem !important;
+        }
+        .floating-actions { 
+            bottom: 10px !important; 
+        }
+    }
+    
+    /* High DPI displays */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .stButton > button,
+        .floating-btn {
+            border-width: 0.5px;
+        }
+    }
+    
+    /* Accessibility improvements */
+    @media (prefers-reduced-motion: reduce) {
+        .stButton > button,
+        .floating-btn,
+        .quick-action,
+        .stTabs [data-baseweb="tab"] {
+            transition: none !important;
+        }
+        .loading {
+            animation: none !important;
+        }
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        .stApp {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
+        }
+    }
+    
+    /* Mobile device specific styles */
+    .mobile-device .stTabs [data-baseweb="tab-list"] {
+        flex-direction: column !important;
+        gap: 4px !important;
+    }
+    
+    .mobile-device .stTabs [data-baseweb="tab"] {
+        width: 100% !important;
+        justify-content: center !important;
+        height: 45px !important;
+        font-size: 0.9rem !important;
+    }
+    
+    .mobile-device .main-header {
+        font-size: 1.8rem !important;
+        padding: 1rem 0 !important;
+    }
+    
+    .mobile-device .sub-header {
+        font-size: 0.9rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .mobile-device .video-title {
+        font-size: 1.1rem !important;
+    }
+    
+    .mobile-device .stButton > button {
+        min-height: 44px !important;
+        font-size: 16px !important;
+    }
+    
+    .mobile-device .stTextInput > div > div > input,
+    .mobile-device .stSelectbox > div > div > div,
+    .mobile-device .stNumberInput > div > div > input {
+        min-height: 44px !important;
+        font-size: 16px !important;
+    }
+    
+    /* Additional mobile improvements */
+    .mobile-device .stExpander > div > div {
+        padding: 0.5rem !important;
+    }
+    
+    .mobile-device .stProgress > div {
+        height: 8px !important;
+    }
+    
+    .mobile-device .stDownloadButton > button {
+        min-height: 44px !important;
+        font-size: 14px !important;
+        padding: 0.5rem 1rem !important;
+    }
+    
+    /* Improve mobile scrolling */
+    .mobile-device .stApp {
+        overflow-x: hidden !important;
+    }
+    
+    /* Better mobile spacing */
+    .mobile-device .stMarkdown {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .mobile-device .stExpander {
+        margin-bottom: 0.5rem !important;
+    }
+    
+    /* Mobile-friendly expander content */
+    .mobile-device .stExpander > div > div > div {
+        padding: 0.75rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -359,6 +712,22 @@ if 'is_playlist_url' not in st.session_state:
 if 'download_history' not in st.session_state:
     st.session_state.download_history = []
 
+# Simple mobile detection using user agent
+user_agent = st.get_option("server.enableCORS")
+is_mobile = st.session_state.get('is_mobile', False)
+
+# Add a hidden component to detect mobile via JavaScript
+mobile_detector = st.empty()
+mobile_detector.markdown("""
+<script>
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                 window.innerWidth <= 768;
+if (isMobile) {
+    document.body.classList.add('mobile-device');
+}
+</script>
+""", unsafe_allow_html=True)
+
 st.markdown('<h1 class="main-header">🎬 YT-DLP Downloader</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Download videos and audio from 1000+ Supported Platforms</p>', unsafe_allow_html=True)
 
@@ -376,16 +745,26 @@ with tab1:
     if not all(deps.values()):
         st.warning("⚠️ Some dependencies are missing. Check the System tab.")
     st.markdown("### 🔗 Enter URL")
-    col1, col2 = st.columns([4, 1])
-    with col1:
+    # Mobile-friendly layout: stack vertically on small screens
+    if st.session_state.get('is_mobile', False):
         url = st.text_input(
             "Video URL",
             placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
             help="Paste any video, playlist, or channel URL",
             label_visibility="collapsed"
         )
-    with col2:
         fetch_clicked = st.button("🔍 Fetch Info", use_container_width=True, disabled=not url)
+    else:
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            url = st.text_input(
+                "Video URL",
+                placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                help="Paste any video, playlist, or channel URL",
+                label_visibility="collapsed"
+            )
+        with col2:
+            fetch_clicked = st.button("🔍 Fetch Info", use_container_width=True, disabled=not url)
     if url:
         is_valid, message = validate_url(url)
         if is_valid:
@@ -408,11 +787,10 @@ with tab1:
     if st.session_state.video_info:
         info = st.session_state.video_info
         st.markdown("### 📺 Video Information")
-        col1, col2 = st.columns([1, 2])
-        with col1:
+        # Mobile-friendly video info layout
+        if st.session_state.get('is_mobile', False):
             if info.get('thumbnail'):
                 st.image(info['thumbnail'], use_container_width=True)
-        with col2:
             st.markdown(f'<div class="video-title">{info.get("title", "N/A")}</div>', unsafe_allow_html=True)
             if st.session_state.is_playlist_url:
                 entries_count = len(info.get('entries', []))
@@ -423,14 +801,29 @@ with tab1:
                 if info.get('view_count'):
                     st.markdown(f"**👀 Views:** {info['view_count']:,}")
             st.markdown(f"**👤 Uploader:** {info.get('uploader', 'N/A')}")
+        else:
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                if info.get('thumbnail'):
+                    st.image(info['thumbnail'], use_container_width=True)
+            with col2:
+                st.markdown(f'<div class="video-title">{info.get("title", "N/A")}</div>', unsafe_allow_html=True)
+                if st.session_state.is_playlist_url:
+                    entries_count = len(info.get('entries', []))
+                    st.markdown(f"**📋 Type:** Playlist ({entries_count:,} videos)")
+                else:
+                    st.markdown(f"**🎥 Type:** Single Video")
+                    st.markdown(f"**⏱️ Duration:** {info.get('duration_string', 'N/A')}")
+                    if info.get('view_count'):
+                        st.markdown(f"**👀 Views:** {info['view_count']:,}")
+                st.markdown(f"**👤 Uploader:** {info.get('uploader', 'N/A')}")
         st.markdown("### ⚙️ Download Options")
-        option_col1, option_col2, option_col3 = st.columns(3)
-        with option_col1:
+        # Mobile-friendly download options layout
+        if st.session_state.get('is_mobile', False):
             download_type = st.selectbox(
                 "Download Type",
                 ["Video + Audio", "Audio Only", "Video Only"]
             )
-        with option_col2:
             if download_type != "Audio Only":
                 quality = st.selectbox(
                     "Video Quality",
@@ -438,7 +831,6 @@ with tab1:
                 )
             else:
                 quality = "Best Available"
-        with option_col3:
             if download_type == "Audio Only":
                 audio_format = st.selectbox(
                     "Audio Format",
@@ -446,9 +838,32 @@ with tab1:
                 )
             else:
                 audio_format = "mp3"
-        with st.expander("➕ Additional Options"):
-            option_col1, option_col2 = st.columns(2)
+        else:
+            option_col1, option_col2, option_col3 = st.columns(3)
             with option_col1:
+                download_type = st.selectbox(
+                    "Download Type",
+                    ["Video + Audio", "Audio Only", "Video Only"]
+                )
+            with option_col2:
+                if download_type != "Audio Only":
+                    quality = st.selectbox(
+                        "Video Quality",
+                        ["Best Available", "1080p", "720p", "480p", "360p"]
+                    )
+                else:
+                    quality = "Best Available"
+            with option_col3:
+                if download_type == "Audio Only":
+                    audio_format = st.selectbox(
+                        "Audio Format",
+                        ["mp3", "aac", "m4a", "opus", "flac"]
+                    )
+                else:
+                    audio_format = "mp3"
+        with st.expander("➕ Additional Options"):
+            # Mobile-friendly additional options layout
+            if st.session_state.get('is_mobile', False):
                 download_subs = st.checkbox("Download Subtitles")
                 download_thumbnail = st.checkbox("Download Thumbnail")
                 if st.session_state.is_playlist_url:
@@ -457,21 +872,46 @@ with tab1:
                 else:
                     playlist_start = 1
                     playlist_end = 0
-            with option_col2:
                 embed_metadata = st.checkbox("Add Metadata", disabled=not deps['ffmpeg'])
                 max_file_size = st.selectbox(
                     "Max File Size",
                     ["No Limit", "100MB", "500MB", "1GB", "2GB"]
                 )
+            else:
+                option_col1, option_col2 = st.columns(2)
+                with option_col1:
+                    download_subs = st.checkbox("Download Subtitles")
+                    download_thumbnail = st.checkbox("Download Thumbnail")
+                    if st.session_state.is_playlist_url:
+                        playlist_start = st.number_input("Start from video #", min_value=1, value=1)
+                        playlist_end = st.number_input("End at video # (0 = all)", min_value=0, value=0)
+                    else:
+                        playlist_start = 1
+                        playlist_end = 0
+                with option_col2:
+                    embed_metadata = st.checkbox("Add Metadata", disabled=not deps['ffmpeg'])
+                    max_file_size = st.selectbox(
+                        "Max File Size",
+                        ["No Limit", "100MB", "500MB", "1GB", "2GB"]
+                    )
         st.markdown("---")
-        download_col1, download_col2, download_col3 = st.columns([2, 2, 2])
-        with download_col2:
+        # Mobile-friendly download button layout
+        if st.session_state.get('is_mobile', False):
             if st.button("🚀 Start Download", type="primary", use_container_width=True):
                 if not deps['yt-dlp']:
                     st.error("❌ yt-dlp is required but not installed!")
                 else:
                     st.session_state.downloading = True
                     st.rerun()
+        else:
+            download_col1, download_col2, download_col3 = st.columns([2, 2, 2])
+            with download_col2:
+                if st.button("🚀 Start Download", type="primary", use_container_width=True):
+                    if not deps['yt-dlp']:
+                        st.error("❌ yt-dlp is required but not installed!")
+                    else:
+                        st.session_state.downloading = True
+                        st.rerun()
     if st.session_state.get('downloading', False):
         st.markdown("### 📥 Downloading...")
         progress_bar = st.progress(0)
@@ -1076,60 +1516,53 @@ with st.sidebar:
         except:
             st.info("Run `yt-dlp --list-extractors` to see all platforms")
 
-if url or st.session_state.get('quick_url'):
-    st.markdown("""
-    <style>
-    .floating-actions {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 999;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-    .floating-btn {
-        background: linear-gradient(135deg, #00d4aa, #00a8ff);
-        color: #000000;
-        border: none;
-        border-radius: 50px;
-        padding: 12px 20px;
-        font-weight: bold;
-        box-shadow: 0 4px 20px rgba(0, 212, 170, 0.4);
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    .floating-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0, 212, 170, 0.5);
-    }
-    </style>
-    """, unsafe_allow_html=True)
+
 
 st.markdown("---")
 st.markdown("### 💡 Pro Tips:")
-tip_col1, tip_col2, tip_col3 = st.columns(3)
-with tip_col1:
+# Mobile-friendly pro tips layout
+if st.session_state.get('is_mobile', False):
     st.markdown("#### 🎯 For Best Results:")
     st.markdown("""
     - Use wired internet
     - Test single videos first
     - Check storage space
     """)
-with tip_col2:
     st.markdown("#### 🚀 Speed Optimization:")
     st.markdown("""
     - Choose 720p for balance
     - Close bandwidth-heavy apps
     - Use audio-only for music
     """)
-with tip_col3:
     st.markdown("#### 🛠️ Troubleshooting:")
     st.markdown("""
     - Refresh if downloads fail
     - Try different qualities
     - Check URL in browser
     """)
+else:
+    tip_col1, tip_col2, tip_col3 = st.columns(3)
+    with tip_col1:
+        st.markdown("#### 🎯 For Best Results:")
+        st.markdown("""
+        - Use wired internet
+        - Test single videos first
+        - Check storage space
+        """)
+    with tip_col2:
+        st.markdown("#### 🚀 Speed Optimization:")
+        st.markdown("""
+        - Choose 720p for balance
+        - Close bandwidth-heavy apps
+        - Use audio-only for music
+        """)
+    with tip_col3:
+        st.markdown("#### 🛠️ Troubleshooting:")
+        st.markdown("""
+        - Refresh if downloads fail
+        - Try different qualities
+        - Check URL in browser
+        """)
 st.markdown("---")
 st.markdown(
     '<div style="text-align: center; padding: 2rem 0; border-top: 1px solid #3d3d5c; margin-top: 3rem;">'
@@ -1144,25 +1577,43 @@ st.markdown(
     '</div>',
     unsafe_allow_html=True
 )
-feat_col1, feat_col2, feat_col3 = st.columns(3)
-with feat_col1:
+# Mobile-friendly features layout
+if st.session_state.get('is_mobile', False):
     st.markdown("""
     <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
         <span style="color: #00d4aa;">🎬</span> 1000+ Supported Sites
     </div>
     """, unsafe_allow_html=True)
-with feat_col2:
     st.markdown("""
     <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
         <span style="color: #00a8ff;">⚡</span> High-Speed Downloads
     </div>
     """, unsafe_allow_html=True)
-with feat_col3:
     st.markdown("""
     <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
         <span style="color: #26de81;">🔧</span> Advanced Features
     </div>
     """, unsafe_allow_html=True)
+else:
+    feat_col1, feat_col2, feat_col3 = st.columns(3)
+    with feat_col1:
+        st.markdown("""
+        <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
+            <span style="color: #00d4aa;">🎬</span> 1000+ Supported Sites
+        </div>
+        """, unsafe_allow_html=True)
+    with feat_col2:
+        st.markdown("""
+        <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
+            <span style="color: #00a8ff;">⚡</span> High-Speed Downloads
+        </div>
+        """, unsafe_allow_html=True)
+    with feat_col3:
+        st.markdown("""
+        <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
+            <span style="color: #26de81;">🔧</span> Advanced Features
+        </div>
+        """, unsafe_allow_html=True)
 
 def show_dependency_warning():
     if not deps['yt-dlp']:
@@ -1196,8 +1647,17 @@ def init_session_state():
         st.session_state.app_initialized = True
         st.session_state.download_count = 0
         st.session_state.total_downloaded_size = 0
+    
+    # Simple mobile detection based on screen width
+    # This is a basic approach - in a real app you'd use proper user agent detection
+    if 'is_mobile' not in st.session_state:
+        st.session_state.is_mobile = False
 
 init_session_state()
+
+# Mobile detection toggle for testing (hidden in production)
+with st.expander("🔧 Developer Options", expanded=False):
+    st.session_state.is_mobile = st.checkbox("Force Mobile Layout", value=st.session_state.get('is_mobile', False))
 
 if st.session_state.get('show_performance', False):
     with st.expander("📊 Performance Stats"):
@@ -1232,7 +1692,7 @@ with st.expander("List of 1000+ Supported Platforms"):
 
 st.markdown("""
 <div style="position: fixed; bottom: 10px; left: 10px; background: rgba(0, 0, 0, 0.7); padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; color: #888;">
-    v2.5.1 | Parallel Downloading
+    v2.6.0 | Mobile Responsive
 </div>
 """, unsafe_allow_html=True)
 
@@ -1241,6 +1701,18 @@ st.markdown("""
 document.addEventListener('DOMContentLoaded', function() {
     const urlInput = document.querySelector('input[placeholder*="youtube"]');
     if (urlInput) urlInput.focus();
+    
+    // Detect mobile device
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                     window.innerWidth <= 768;
+    
+    // Send mobile detection to Streamlit
+    if (window.parent && window.parent.postMessage) {
+        window.parent.postMessage({
+            type: 'streamlit:setComponentValue',
+            value: isMobile
+        }, '*');
+    }
 });
 document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.key === 'Enter') {
@@ -1253,20 +1725,18 @@ document.addEventListener('keypress', function(e) {
         e.preventDefault();
     }
 });
+
+// Handle window resize for responsive design
+window.addEventListener('resize', function() {
+    const isMobile = window.innerWidth <= 768;
+    if (window.parent && window.parent.postMessage) {
+        window.parent.postMessage({
+            type: 'streamlit:setComponentValue',
+            value: isMobile
+        }, '*');
+    }
+});
 </script>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-@media (max-width: 768px) {
-    .main-header { font-size: 2rem !important; }
-    .stTabs [data-baseweb="tab"] { padding: 0px 12px !important; font-size: 0.9rem !important; }
-    .video-info { padding: 1rem !important; }
-    .floating-actions { bottom: 80px !important; right: 10px !important; }
-}
-@media (max-width: 480px) {
-    .main-header { font-size: 1.5rem !important; }
-    .sub-header { font-size: 1rem !important; }
-}
-</style>
-""", unsafe_allow_html=True)
+
