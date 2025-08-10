@@ -12,7 +12,7 @@
                           YT-DLP GUI Downloader powered by Streamlit – by Sahaj33
 ```
 
-> Download videos & audio from YouTube with style and advanced options.
+> Download videos & audio from 1000+ platforms with style and advanced options.
 
 <p align="center">
   <a href="https://ytdlp-downloader-app-sahaj33.streamlit.app/">
