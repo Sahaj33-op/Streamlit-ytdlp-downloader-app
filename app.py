@@ -16,28 +16,46 @@ import sys
 import zipfile
 import stat
 import tarfile
+import threading
 
-def ensure_ffmpeg():
+# =============================================================================
+# CONFIGURATION CONSTANTS
+# =============================================================================
+
+# Maximum file size (in bytes) that can be safely loaded into memory for download
+# Files larger than this will show a warning and require manual retrieval
+MAX_SAFE_FILE_SIZE_MB = 100
+MAX_SAFE_FILE_SIZE_BYTES = MAX_SAFE_FILE_SIZE_MB * 1024 * 1024
+
+# FFmpeg status tracking
+_ffmpeg_status = {"checked": False, "available": False, "message": ""}
+
+
+def check_ffmpeg_availability():
+    """Check if ffmpeg is available without blocking startup."""
+    global _ffmpeg_status
+    if _ffmpeg_status["checked"]:
+        return _ffmpeg_status["available"]
+
+    _ffmpeg_status["checked"] = True
     if shutil.which("ffmpeg"):
-        return
-    url = "https://johnvansickle.com/ffmpeg/builds/ffmpeg-release-amd64-static.tar.xz"
-    r = requests.get(url, stream=True, timeout=30)
-    r.raise_for_status()
-    tmp = tempfile.mkdtemp()
-    archive = os.path.join(tmp, "ffmpeg.tar.xz")
-    with open(archive, "wb") as f:
-        for chunk in r.iter_content(1024*1024):
-            f.write(chunk)
-    with tarfile.open(archive) as tar:
-        members = [m for m in tar.getmembers() if m.name.endswith(("ffmpeg", "ffprobe"))]
-        tar.extractall(path=tmp, members=members)
-    bin_dir = tmp
-    for name in ("ffmpeg", "ffprobe"):
-        path = os.path.join(bin_dir, name)
-        os.chmod(path, os.stat(path).st_mode | stat.S_IEXEC)
-    os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+        _ffmpeg_status["available"] = True
+        _ffmpeg_status["message"] = "FFmpeg found in PATH"
+    else:
+        _ffmpeg_status["available"] = False
+        _ffmpeg_status["message"] = "FFmpeg not found. Some features may be limited."
 
-ensure_ffmpeg()
+    return _ffmpeg_status["available"]
+
+
+def get_ffmpeg_status():
+    """Get the current ffmpeg status message."""
+    check_ffmpeg_availability()
+    return _ffmpeg_status
+
+
+# Check ffmpeg availability (non-blocking)
+check_ffmpeg_availability()
 
 def cleanup_temp_dir_robust(temp_dir):
     if not temp_dir or not os.path.exists(temp_dir):
@@ -54,6 +72,167 @@ def cleanup_temp_dir_robust(temp_dir):
     except Exception as e:
         st.error(f"Unexpected error cleaning up {temp_dir}: {str(e)}")
         return False
+
+
+def is_file_safe_for_memory(file_size):
+    """Check if a file is small enough to safely load into memory."""
+    return file_size <= MAX_SAFE_FILE_SIZE_BYTES
+
+
+def serve_file_safely(file_path, filename, file_size, button_key, container=None):
+    """
+    Serve a file for download, with size-based safety checks.
+
+    For files under MAX_SAFE_FILE_SIZE_MB: Use st.download_button (loads into memory)
+    For larger files: Show warning and file path for manual retrieval
+
+    Returns True if file was served, False if too large.
+    """
+    target = container if container else st
+    size_mb = file_size / (1024 * 1024)
+
+    if is_file_safe_for_memory(file_size):
+        # Safe to load into memory
+        with open(file_path, "rb") as f:
+            target.download_button(
+                label=f"📥 {filename} ({size_mb:.1f} MB)",
+                data=f.read(),
+                file_name=filename,
+                mime="application/octet-stream",
+                key=button_key,
+                use_container_width=True
+            )
+        return True
+    else:
+        # File too large - show warning instead of loading into memory
+        target.warning(
+            f"⚠️ **{filename}** ({size_mb:.1f} MB) exceeds the {MAX_SAFE_FILE_SIZE_MB}MB limit "
+            f"for browser downloads. Large files may cause memory issues."
+        )
+        target.info(f"📂 **File saved to:** `{file_path}`")
+        target.markdown(
+            f"💡 **Tip:** Access the file directly from the server's temp directory, "
+            f"or reduce the video quality to get smaller files."
+        )
+        return False
+
+
+def create_yt_dlp_progress_hook(progress_bar, status_text=None):
+    """
+    Create a progress hook for yt-dlp that updates a Streamlit progress bar.
+
+    This replaces the need to parse stdout with regex.
+    """
+    def progress_hook(d):
+        if d['status'] == 'downloading':
+            # Calculate progress
+            total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+            downloaded = d.get('downloaded_bytes', 0)
+
+            if total > 0:
+                progress = downloaded / total
+                progress_bar.progress(min(progress, 1.0))
+
+            if status_text:
+                speed = d.get('speed')
+                if speed:
+                    speed_str = f"{speed / 1024 / 1024:.1f} MB/s"
+                else:
+                    speed_str = "calculating..."
+                eta = d.get('eta')
+                eta_str = f"{eta}s" if eta else "unknown"
+                status_text.text(f"Speed: {speed_str} | ETA: {eta_str}")
+
+        elif d['status'] == 'finished':
+            progress_bar.progress(1.0)
+            if status_text:
+                status_text.text("Download complete, processing...")
+
+    return progress_hook
+
+
+def download_with_ytdlp_api(url, output_dir, options, progress_bar=None, status_text=None):
+    """
+    Download using yt-dlp Python API instead of subprocess.
+
+    Returns dict with 'success', 'files', 'error' keys.
+    """
+    ydl_opts = {
+        'outtmpl': os.path.join(output_dir, '%(title).100s-%(id)s.%(ext)s'),
+        'restrictfilenames': True,
+        'quiet': True,
+        'no_warnings': True,
+    }
+
+    # Add progress hook if progress bar provided
+    if progress_bar:
+        ydl_opts['progress_hooks'] = [create_yt_dlp_progress_hook(progress_bar, status_text)]
+
+    # Apply download type options
+    download_type = options.get('download_type', 'Video + Audio')
+    quality = options.get('quality', 'Best Available')
+    audio_format = options.get('audio_format', 'mp3')
+
+    if download_type == "Audio Only":
+        ydl_opts['format'] = 'bestaudio/best'
+        ydl_opts['postprocessors'] = [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': audio_format,
+        }]
+    elif download_type == "Video Only":
+        ydl_opts['format'] = 'bestvideo'
+    else:
+        # Video + Audio
+        if quality != "Best Available":
+            quality_map = {
+                "1080p": "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+                "720p": "bestvideo[height<=720]+bestaudio/best[height<=720]",
+                "480p": "bestvideo[height<=480]+bestaudio/best[height<=480]",
+                "360p": "bestvideo[height<=360]+bestaudio/best[height<=360]"
+            }
+            ydl_opts['format'] = quality_map.get(quality, 'best')
+        else:
+            ydl_opts['format'] = 'bestvideo+bestaudio/best'
+
+    # Additional options
+    if options.get('download_subs'):
+        ydl_opts['writesubtitles'] = True
+        ydl_opts['subtitleslangs'] = ['en']
+
+    if options.get('download_thumbnail'):
+        ydl_opts['writethumbnail'] = True
+
+    if options.get('embed_metadata') and check_ffmpeg_availability():
+        ydl_opts['postprocessors'] = ydl_opts.get('postprocessors', [])
+        ydl_opts['postprocessors'].append({'key': 'FFmpegMetadata'})
+
+    if options.get('max_file_size') and options['max_file_size'] != "No Limit":
+        size_map = {"100MB": 100*1024*1024, "500MB": 500*1024*1024,
+                    "1GB": 1000*1024*1024, "2GB": 2000*1024*1024}
+        ydl_opts['max_filesize'] = size_map.get(options['max_file_size'])
+
+    # Playlist options
+    if options.get('playlist_start', 1) > 1:
+        ydl_opts['playliststart'] = options['playlist_start']
+    if options.get('playlist_end', 0) > 0:
+        ydl_opts['playlistend'] = options['playlist_end']
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+        # Collect downloaded files
+        files = []
+        for root, _, filenames in os.walk(output_dir):
+            for filename in filenames:
+                file_path = os.path.join(root, filename)
+                files.append((filename, file_path, os.path.getsize(file_path)))
+
+        return {'success': True, 'files': files, 'error': None}
+
+    except Exception as e:
+        return {'success': False, 'files': [], 'error': str(e)}
+
 
 st.set_page_config(
     layout="wide",
@@ -915,133 +1094,81 @@ with tab1:
     if st.session_state.get('downloading', False):
         st.markdown("### 📥 Downloading...")
         progress_bar = st.progress(0)
+        status_text = st.empty()
         temp_dir = tempfile.mkdtemp(prefix="ytdlp_")
+
         try:
-            cmd = ["yt-dlp", "-o", os.path.join(temp_dir, "%(title)s.%(ext)s")]
-            if download_type == "Audio Only":
-                cmd.extend(["-x", "--audio-format", audio_format])
-            elif download_type == "Video Only":
-                cmd.extend(["-f", "bestvideo"])
-            else:
-                if quality != "Best Available":
-                    quality_map = {
-                        "1080p": "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
-                        "720p": "bestvideo[height<=720]+bestaudio/best[height<=720]",
-                        "480p": "bestvideo[height<=480]+bestaudio/best[height<=480]",
-                        "360p": "bestvideo[height<=360]+bestaudio/best[height<=360]"
-                    }
-                    cmd.extend(["-f", quality_map.get(quality, "best")])
-            if download_subs:
-                cmd.extend(["--write-sub", "--sub-langs", "en"])
-            if download_thumbnail:
-                cmd.append("--write-thumbnail")
-            if embed_metadata and deps['ffmpeg']:
-                cmd.append("--add-metadata")
-            if max_file_size != "No Limit":
-                size_map = {"100MB": "100m", "500MB": "500m", "1GB": "1000m", "2GB": "2000m"}
-                cmd.extend(["--max-filesize", size_map[max_file_size]])
-            if st.session_state.is_playlist_url:
-                if playlist_start > 1:
-                    cmd.extend(["--playlist-start", str(playlist_start)])
-                if playlist_end > 0:
-                    cmd.extend(["--playlist-end", str(playlist_end)])
-            cmd.append(url)
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                universal_newlines=True
+            # Build download options for the yt-dlp API
+            download_options = {
+                'download_type': download_type,
+                'quality': quality,
+                'audio_format': audio_format,
+                'download_subs': download_subs,
+                'download_thumbnail': download_thumbnail,
+                'embed_metadata': embed_metadata and deps['ffmpeg'],
+                'max_file_size': max_file_size,
+                'playlist_start': playlist_start if st.session_state.is_playlist_url else 1,
+                'playlist_end': playlist_end if st.session_state.is_playlist_url else 0,
+            }
+
+            # Use yt-dlp Python API instead of subprocess
+            result = download_with_ytdlp_api(
+                url=url,
+                output_dir=temp_dir,
+                options=download_options,
+                progress_bar=progress_bar,
+                status_text=status_text
             )
-            logs = []
-            current_percent = 0
-            while True:
-                output = process.stdout.readline()
-                if output == '' and process.poll() is not None:
-                    break
-                if output:
-                    line = output.strip()
-                    logs.append(line)
-                    progress_info = parse_progress(line)
-                    if progress_info and 'percent' in progress_info:
-                        current_percent = progress_info['percent']
-                        progress_bar.progress(current_percent / 100)
-            return_code = process.poll()
-            if return_code == 0:
+
+            if result['success'] and result['files']:
+                downloaded_files = result['files']
                 progress_bar.progress(1.0)
-                downloaded_files = []
-                for root, dirs, files in os.walk(temp_dir):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        file_size = os.path.getsize(file_path)
-                        downloaded_files.append((file, file_path, file_size))
-                if downloaded_files:
-                    st.success(f"🎉 Downloaded {len(downloaded_files)} file(s)!")
-                    st.markdown("### 📥 Download Files")
-                    auto_download = st.checkbox(
-                        "Enable automatic download",
-                        value=False,
-                        help="Automatically start downloads (may cause browser popup)"
+                status_text.empty()
+                st.success(f"🎉 Downloaded {len(downloaded_files)} file(s)!")
+                st.markdown("### 📥 Download Files")
+
+                # Calculate total size for warnings
+                total_size = sum(f[2] for f in downloaded_files)
+                large_files_count = sum(1 for f in downloaded_files if f[2] > MAX_SAFE_FILE_SIZE_BYTES)
+
+                if large_files_count > 0:
+                    st.warning(
+                        f"⚠️ {large_files_count} file(s) exceed {MAX_SAFE_FILE_SIZE_MB}MB. "
+                        f"Large files cannot be downloaded via browser due to memory constraints."
                     )
-                    for i, (filename, file_path, size) in enumerate(downloaded_files):
-                        col1, col2 = st.columns([3, 1])
-                        with col1:
-                            with open(file_path, "rb") as f:
-                                file_data = f.read()
-                            st.download_button(
-                                label=f"📥 {filename} ({size // 1024 // 1024:.1f} MB)",
-                                data=file_data,
-                                file_name=filename,
-                                mime="application/octet-stream",
-                                key=f"download_btn_{i}",
-                                use_container_width=True
-                            )
-                        with col2:
-                            st.markdown(f"**{size // 1024 // 1024:.1f} MB**")
-                    if auto_download and len(downloaded_files) == 1:
-                        filename, file_path, size = downloaded_files[0]
-                        with open(file_path, "rb") as f:
-                            import base64
-                            b64 = base64.b64encode(f.read()).decode()
-                        st.markdown(
-                            f"""
-                            <script>
-                            (function() {{
-                                var executed = false;
-                                function autoDownload() {{
-                                    if (executed) return;
-                                    executed = true;
-                                    var link = document.createElement('a');
-                                    link.href = 'data:application/octet-stream;base64,{b64}';
-                                    link.download = '{filename}';
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                }}
-                                setTimeout(autoDownload, 500);
-                            }})();
-                            </script>
-                            """,
-                            unsafe_allow_html=True
+
+                for i, (filename, file_path, size) in enumerate(downloaded_files):
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        # Use safe file serving with size checks
+                        serve_file_safely(
+                            file_path=file_path,
+                            filename=filename,
+                            file_size=size,
+                            button_key=f"download_btn_{i}"
                         )
-                        st.info("🚀 Auto-download started!")
-                    elif auto_download and len(downloaded_files) > 1:
-                        st.warning("⚠️ Auto-download disabled for multiple files.")
-                    st.session_state.download_history.insert(0, {
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "url": url[:50] + "..." if len(url) > 50 else url,
-                        "title": st.session_state.video_info.get('title', 'Unknown')[:30] + "...",
-                        "files": len(downloaded_files),
-                        "status": "Success"
-                    })
+                    with col2:
+                        st.markdown(f"**{size / 1024 / 1024:.1f} MB**")
+
+                st.session_state.download_history.insert(0, {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "url": url[:50] + "..." if len(url) > 50 else url,
+                    "title": st.session_state.video_info.get('title', 'Unknown')[:30] + "...",
+                    "files": len(downloaded_files),
+                    "status": "Success"
+                })
             else:
                 st.error("❌ Download failed!")
-                if logs:
-                    error_type, error_solution = categorize_error(logs[-1])
+                if result['error']:
+                    error_type, error_solution = categorize_error(result['error'])
                     st.markdown(f"**Error:** {error_type}")
                     st.markdown(f"**Solution:** {error_solution}")
+
         except Exception as e:
             st.error(f"❌ Error: {str(e)}")
+            error_type, error_solution = categorize_error(str(e))
+            st.markdown(f"**Error:** {error_type}")
+            st.markdown(f"**Solution:** {error_solution}")
         finally:
             try:
                 shutil.rmtree(temp_dir)
@@ -1167,19 +1294,32 @@ with tab2:
             current_status = st.empty()
             results_container = st.container()
 
-        # Function to download a single URL
+        # Function to download a single URL using yt-dlp Python API
         def download_single_url(url, temp_dir, settings, task_id):
             # Create unique subdirectory for each task
             task_temp_dir = os.path.join(temp_dir, f"task_{task_id}")
             os.makedirs(task_temp_dir, exist_ok=True)
-            cmd = ["yt-dlp", "-o", os.path.join(task_temp_dir, "%(title).100s-%(id)s.%(ext)s"), "--restrict-filenames"]
+
+            # Build yt-dlp options
+            ydl_opts = {
+                'outtmpl': os.path.join(task_temp_dir, '%(title).100s-%(id)s.%(ext)s'),
+                'restrictfilenames': True,
+                'quiet': True,
+                'no_warnings': True,
+            }
+
             download_type = settings.get('download_type', 'Video + Audio')
             quality = settings.get('quality', 'Best Available')
             audio_format = settings.get('audio_format', 'mp3')
+
             if download_type == "Audio Only":
-                cmd.extend(["-x", "--audio-format", audio_format])
+                ydl_opts['format'] = 'bestaudio/best'
+                ydl_opts['postprocessors'] = [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': audio_format,
+                }]
             elif download_type == "Video Only":
-                cmd.extend(["-f", "bestvideo"])
+                ydl_opts['format'] = 'bestvideo'
             else:
                 if quality != "Best Available":
                     quality_map = {
@@ -1188,49 +1328,46 @@ with tab2:
                         "480p": "bestvideo[height<=480]+bestaudio/best[height<=480]",
                         "360p": "bestvideo[height<=360]+bestaudio/best[height<=360]"
                     }
-                    cmd.extend(["-f", quality_map.get(quality, "best")])
+                    ydl_opts['format'] = quality_map.get(quality, 'best')
+                else:
+                    ydl_opts['format'] = 'bestvideo+bestaudio/best'
+
             if settings.get('subs', False):
-                cmd.extend(["--write-sub", "--sub-langs", "en"])
+                ydl_opts['writesubtitles'] = True
+                ydl_opts['subtitleslangs'] = ['en']
+
             if settings.get('thumbnail', False):
-                cmd.append("--write-thumbnail")
-            if settings.get('metadata', False) and deps.get('ffmpeg', False):
-                cmd.append("--add-metadata")
+                ydl_opts['writethumbnail'] = True
+
+            if settings.get('metadata', False) and check_ffmpeg_availability():
+                ydl_opts['postprocessors'] = ydl_opts.get('postprocessors', [])
+                ydl_opts['postprocessors'].append({'key': 'FFmpegMetadata'})
+
             max_size = settings.get('max_size', 'No Limit')
             if max_size != "No Limit":
-                size_map = {"100MB": "100m", "500MB": "500m", "1GB": "1000m", "2GB": "2000m"}
-                cmd.extend(["--max-filesize", size_map[max_size]])
-            cmd.append(url)
+                size_map = {"100MB": 100*1024*1024, "500MB": 500*1024*1024,
+                            "1GB": 1000*1024*1024, "2GB": 2000*1024*1024}
+                ydl_opts['max_filesize'] = size_map.get(max_size)
+
             try:
-                process = subprocess.run(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    timeout=settings.get('timeout', 900)
-                )
-                if process.returncode == 0:
-                    title_match = (re.search(r'\[download\] (.+?) has already been downloaded', process.stdout) or
-                                  re.search(r'\[download\] Destination: (.+)', process.stdout) or
-                                  re.search(r'(.+)', process.stdout.split('\n')[0]))
-                    title = "Unknown" if not title_match else os.path.basename(title_match.group(1))
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    title = info.get('title', 'Unknown') if info else 'Unknown'
                     if len(title) > 50:
                         title = title[:47] + "..."
-                    # Collect downloaded files
-                    files = []
-                    for root, _, filenames in os.walk(task_temp_dir):
-                        for filename in filenames:
-                            file_path = os.path.join(root, filename)
-                            files.append((filename, file_path, os.path.getsize(file_path)))
-                    return {"url": url, "title": title, "status": "success", "files": files}
-                else:
-                    error_msg = process.stderr or process.stdout
-                    error_type, error_solution = categorize_error(error_msg)
-                    return {"url": url, "title": "Failed", "status": "error", "error": f"{error_type}: {error_solution}"}
-            except subprocess.TimeoutExpired:
-                return {"url": url, "title": "Timeout", "status": "timeout"}
+
+                # Collect downloaded files
+                files = []
+                for root, _, filenames in os.walk(task_temp_dir):
+                    for filename in filenames:
+                        file_path = os.path.join(root, filename)
+                        files.append((filename, file_path, os.path.getsize(file_path)))
+
+                return {"url": url, "title": title, "status": "success", "files": files}
+
             except Exception as e:
                 error_type, error_solution = categorize_error(str(e))
-                return {"url": url, "title": "Error", "status": "error", "error": f"{error_type}: {error_solution}"}
+                return {"url": url, "title": "Failed", "status": "error", "error": f"{error_type}: {error_solution}"}
 
         # Process URLs in parallel
         success_count = 0
@@ -1287,19 +1424,26 @@ with tab2:
         if all_downloaded_files:
             st.markdown("### 📦 Download Your Files")
             st.markdown(f"**{len(all_downloaded_files)} file(s) ready for download:**")
+
+            # Warn about large files
+            large_files_count = sum(1 for f in all_downloaded_files if f[2] > MAX_SAFE_FILE_SIZE_BYTES)
+            if large_files_count > 0:
+                st.warning(
+                    f"⚠️ {large_files_count} file(s) exceed {MAX_SAFE_FILE_SIZE_MB}MB. "
+                    f"Large files cannot be downloaded via browser due to memory constraints."
+                )
+
             all_downloaded_files.sort(key=lambda x: x[2], reverse=True)
             for idx, (filename, file_path, file_size) in enumerate(all_downloaded_files, 1):
                 col1, col2 = st.columns([4, 1])
                 with col1:
-                    with open(file_path, "rb") as f:
-                        st.download_button(
-                            label=f"📥 {filename}",
-                            data=f.read(),
-                            file_name=filename,
-                            mime="application/octet-stream",
-                            key=f"batch_download_{idx}_{hash(file_path)}",
-                            use_container_width=True
-                        )
+                    # Use safe file serving with size checks
+                    serve_file_safely(
+                        file_path=file_path,
+                        filename=filename,
+                        file_size=file_size,
+                        button_key=f"batch_download_{idx}_{hash(file_path)}"
+                    )
                 with col2:
                     size_mb = file_size / (1024 * 1024)
                     st.markdown(f"**{size_mb:.1f} MB**")
