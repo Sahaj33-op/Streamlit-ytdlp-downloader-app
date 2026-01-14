@@ -95,7 +95,7 @@ def serve_file_safely(file_path, filename, file_size, button_key, container=None
         # Safe to load into memory
         with open(file_path, "rb") as f:
             target.download_button(
-                label=f"📥 {filename} ({size_mb:.1f} MB)",
+                label=f"Download {filename} ({size_mb:.1f} MB)",
                 data=f.read(),
                 file_name=filename,
                 mime="application/octet-stream",
@@ -106,7 +106,7 @@ def serve_file_safely(file_path, filename, file_size, button_key, container=None
     else:
         # File too large - show warning instead of loading into memory
         target.warning(
-            f"⚠️ **{filename}** ({size_mb:.1f} MB) exceeds the {MAX_SAFE_FILE_SIZE_MB}MB limit "
+            f"**{filename}** ({size_mb:.1f} MB) exceeds the {MAX_SAFE_FILE_SIZE_MB}MB limit "
             f"for browser downloads. Large files may cause memory issues."
         )
         target.info(f"📂 **File saved to:** `{file_path}`")
@@ -237,555 +237,488 @@ def download_with_ytdlp_api(url, output_dir, options, progress_bar=None, status_
 st.set_page_config(
     layout="wide",
     page_title="YT-DLP Downloader",
-    page_icon="🎬",
+    page_icon="▼",
     initial_sidebar_state="collapsed"
 )
 
+# =============================================================================
+# MODERN MINIMAL BLACK UI - Clean, Professional Design
+# =============================================================================
 st.markdown("""
 <style>
-    /* Base Styles */
+    /* ========== CSS RESET & BASE ========== */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
     .stApp {
-        background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-        color: #ffffff;
-        min-height: 100vh;
+        background: #000000;
+        color: #E5E5E5;
     }
-    
-    /* Hide Streamlit elements */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    /* Main Header */
+
+    /* Hide Streamlit chrome and reduce top padding */
+    #MainMenu, footer, header {visibility: hidden;}
+    .stDeployButton {display: none;}
+
+    /* Remove default Streamlit top padding */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+        max-width: 1200px !important;
+    }
+
+    /* ========== TYPOGRAPHY ========== */
     .main-header {
+        font-size: 2.5rem;
+        font-weight: 600;
+        color: #FFFFFF;
         text-align: center;
-        padding: 2rem 0;
-        background: linear-gradient(90deg, #00d4aa, #00a8ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        font-size: 3rem;
-        font-weight: bold;
-        margin-bottom: 2rem;
-        text-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
-        word-wrap: break-word;
-        overflow-wrap: break-word;
+        padding: 1rem 0 0.5rem 0;
+        margin: 0 auto;
+        letter-spacing: -0.02em;
+        width: 100%;
+        display: block;
     }
-    
+
     .sub-header {
         text-align: center;
-        color: #a0a0a0;
-        font-size: 1.2rem;
-        margin-bottom: 3rem;
-        padding: 0 1rem;
+        color: #666666;
+        font-size: 1rem;
+        font-weight: 400;
+        margin: 0 auto 2rem auto;
+        padding: 0;
+        letter-spacing: 0.01em;
+        width: 100%;
+        display: block;
     }
-    
-    /* Tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background-color: #1a1a2e;
-        border-radius: 12px;
-        padding: 8px;
-        margin-bottom: 2rem;
-        overflow-x: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
+
+    h1, h2, h3, h4, h5, h6 {
+        color: #FFFFFF !important;
+        font-weight: 500;
+        letter-spacing: -0.01em;
     }
-    
-    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
-        display: none;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        height: 60px;
-        padding: 0px 24px;
-        background-color: #2c2c54;
-        border-radius: 8px;
-        color: #ffffff;
+
+    .video-title {
+        font-size: 1.25rem;
         font-weight: 600;
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-        white-space: nowrap;
-        min-width: fit-content;
+        color: #FFFFFF;
+        margin-bottom: 0.75rem;
+        line-height: 1.4;
     }
-    
+
+    /* ========== TABS ========== */
+    .stTabs [data-baseweb="tab-list"] {
+        background: transparent;
+        gap: 0;
+        border-bottom: 1px solid #1A1A1A;
+        padding: 0;
+        margin-bottom: 2rem;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        color: #666666;
+        border: none;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        padding: 1rem 1.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
     .stTabs [data-baseweb="tab"]:hover {
-        background-color: #40407a;
-        border-color: #00d4aa;
-        transform: translateY(-2px);
+        color: #999999;
+        background: transparent;
     }
-    
+
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #00d4aa, #00a8ff) !important;
-        color: #000000 !important;
-        font-weight: bold;
-        box-shadow: 0 4px 15px rgba(0, 212, 170, 0.4);
+        background: transparent !important;
+        color: #FFFFFF !important;
+        border-bottom: 2px solid #FFFFFF !important;
     }
-    
-    /* Cards */
+
+    /* ========== FORM ELEMENTS ========== */
+    .stTextInput > div > div > input,
+    .stTextArea > div > div > textarea,
+    .stSelectbox > div > div,
+    .stNumberInput > div > div > input {
+        background: #0A0A0A !important;
+        border: 1px solid #1A1A1A !important;
+        border-radius: 8px !important;
+        color: #FFFFFF !important;
+        font-size: 0.9375rem;
+        padding: 0.75rem 1rem;
+        transition: border-color 0.2s ease;
+    }
+
+    .stTextInput > div > div > input:focus,
+    .stTextArea > div > div > textarea:focus,
+    .stSelectbox > div > div:focus-within {
+        border-color: #333333 !important;
+        box-shadow: none !important;
+    }
+
+    .stTextInput > div > div > input::placeholder,
+    .stTextArea > div > div > textarea::placeholder {
+        color: #444444 !important;
+    }
+
+    /* Labels */
+    .stTextInput > label,
+    .stSelectbox > label,
+    .stNumberInput > label,
+    .stTextArea > label,
+    .stCheckbox > label {
+        color: #888888 !important;
+        font-size: 0.8125rem !important;
+        font-weight: 500 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* ========== BUTTONS ========== */
+    .stButton > button {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+        border: none !important;
+        border-radius: 6px !important;
+        padding: 0.625rem 1.25rem !important;
+        font-weight: 500 !important;
+        font-size: 0.875rem !important;
+        transition: all 0.2s ease !important;
+        box-shadow: none !important;
+    }
+
+    .stButton > button:hover {
+        background: #E5E5E5 !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    .stButton > button:active {
+        background: #CCCCCC !important;
+    }
+
+    /* Secondary/Ghost buttons */
+    .stButton > button[kind="secondary"] {
+        background: transparent !important;
+        color: #FFFFFF !important;
+        border: 1px solid #333333 !important;
+    }
+
+    .stButton > button[kind="secondary"]:hover {
+        border-color: #555555 !important;
+        background: #0A0A0A !important;
+    }
+
+    /* Download button */
+    .stDownloadButton > button {
+        background: #0A0A0A !important;
+        color: #FFFFFF !important;
+        border: 1px solid #1A1A1A !important;
+        border-radius: 6px !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .stDownloadButton > button:hover {
+        border-color: #333333 !important;
+        background: #111111 !important;
+    }
+
+    /* ========== PROGRESS BAR ========== */
+    .stProgress > div > div > div > div {
+        background: #FFFFFF !important;
+        border-radius: 2px;
+    }
+
+    .stProgress > div > div > div {
+        background: #1A1A1A !important;
+    }
+
+    /* ========== ALERTS/STATUS ========== */
+    .stSuccess {
+        background: rgba(34, 197, 94, 0.1) !important;
+        border: 1px solid rgba(34, 197, 94, 0.3) !important;
+        border-radius: 8px !important;
+        color: #22C55E !important;
+    }
+
+    .stError {
+        background: rgba(239, 68, 68, 0.1) !important;
+        border: 1px solid rgba(239, 68, 68, 0.3) !important;
+        border-radius: 8px !important;
+        color: #EF4444 !important;
+    }
+
+    .stWarning {
+        background: rgba(234, 179, 8, 0.1) !important;
+        border: 1px solid rgba(234, 179, 8, 0.3) !important;
+        border-radius: 8px !important;
+        color: #EAB308 !important;
+    }
+
+    .stInfo {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 8px !important;
+        color: #999999 !important;
+    }
+
+    /* ========== CARDS & CONTAINERS ========== */
     .info-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
+        background: #0A0A0A;
+        border: 1px solid #1A1A1A;
+        border-radius: 12px;
         padding: 1.5rem;
         margin: 1rem 0;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
-    
-    .status-card {
-        background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(0, 168, 255, 0.1));
-        border: 1px solid rgba(0, 212, 170, 0.3);
-        border-radius: 12px;
-        padding: 1rem;
-        margin: 0.5rem 0;
+
+    /* Expander */
+    .stExpander {
+        background: transparent !important;
+        border: 1px solid #1A1A1A !important;
+        border-radius: 8px !important;
     }
-    
-    .error-card {
-        background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 69, 69, 0.1));
-        border: 1px solid rgba(255, 107, 107, 0.3);
-        border-radius: 12px;
-        padding: 1rem;
-        margin: 0.5rem 0;
+
+    .stExpander > div > div > div > div {
+        color: #FFFFFF !important;
     }
-    
-    /* Form Elements */
-    .stTextInput > div > div > input,
-    .stSelectbox > div > div > div,
-    .stNumberInput > div > div > input {
-        background-color: rgba(255, 255, 255, 0.1);
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        color: #ffffff;
-        backdrop-filter: blur(5px);
-        font-size: 16px; /* Prevents zoom on iOS */
-    }
-    
-    .stTextInput > div > div > input:focus,
-    .stSelectbox > div > div > div:focus {
-        border-color: #00d4aa;
-        box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.2);
-    }
-    
-    /* Buttons */
-    .stButton > button {
-        background: linear-gradient(135deg, #00d4aa, #00a8ff);
-        color: #000000;
-        border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        font-weight: bold;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
-        min-height: 44px; /* Touch-friendly */
-        font-size: 16px;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 212, 170, 0.4);
-    }
-    
-    .stButton > button:active {
-        transform: translateY(0);
-    }
-    
-    /* Progress Bar */
-    .stProgress > div > div > div > div {
-        background: linear-gradient(90deg, #00d4aa, #00a8ff);
-    }
-    
+
     /* Metrics */
     [data-testid="metric-container"] {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-    
-    /* Status Messages */
-    .stSuccess {
-        background-color: rgba(0, 212, 170, 0.1);
-        border: 1px solid #00d4aa;
-        color: #00d4aa;
+        background: #0A0A0A;
+        border: 1px solid #1A1A1A;
         border-radius: 8px;
         padding: 1rem;
     }
-    
-    .stError {
-        background-color: rgba(255, 107, 107, 0.1);
-        border: 1px solid #ff6b6b;
-        color: #ff6b6b;
-        border-radius: 8px;
-        padding: 1rem;
+
+    [data-testid="metric-container"] label {
+        color: #666666 !important;
     }
-    
-    .stWarning {
-        background-color: rgba(255, 206, 84, 0.1);
-        border: 1px solid #ffce54;
-        color: #ffce54;
-        border-radius: 8px;
-        padding: 1rem;
+
+    [data-testid="metric-container"] [data-testid="stMetricValue"] {
+        color: #FFFFFF !important;
     }
-    
-    .stInfo {
-        background-color: rgba(0, 168, 255, 0.1);
-        border: 1px solid #00a8ff;
-        color: #00a8ff;
-        border-radius: 8px;
-        padding: 1rem;
+
+    /* ========== CHECKBOX & RADIO ========== */
+    .stCheckbox > label > div {
+        color: #E5E5E5 !important;
     }
-    
-    /* Quick Actions */
-    .quick-action {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        padding: 1rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        min-height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+
+    .stCheckbox > label > div[data-checked="true"]::before {
+        background: #FFFFFF !important;
+        border-color: #FFFFFF !important;
     }
-    
-    .quick-action:hover {
-        background: rgba(0, 212, 170, 0.2);
-        border-color: #00d4aa;
-        transform: translateY(-2px);
+
+    /* ========== DIVIDER ========== */
+    hr {
+        border-color: #1A1A1A !important;
+        margin: 2rem 0;
     }
-    
-    /* Dependency Status */
+
+    /* ========== SIDEBAR ========== */
+    [data-testid="stSidebar"] {
+        background: #050505 !important;
+        border-right: 1px solid #1A1A1A;
+    }
+
+    [data-testid="stSidebar"] .stButton > button {
+        background: #111111 !important;
+        border: 1px solid #1A1A1A !important;
+        color: #FFFFFF !important;
+    }
+
+    [data-testid="stSidebar"] .stButton > button:hover {
+        border-color: #333333 !important;
+    }
+
+    /* ========== STATUS BADGES ========== */
     .dep-available {
-        background: linear-gradient(135deg, #00d4aa, #26de81);
-        color: #000000;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: bold;
+        background: #0A0A0A;
+        color: #22C55E;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: 1px solid rgba(34, 197, 94, 0.3);
     }
-    
+
     .dep-missing {
-        background: linear-gradient(135deg, #ff6b6b, #ff5252);
-        color: #ffffff;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: bold;
+        background: #0A0A0A;
+        color: #EF4444;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: 1px solid rgba(239, 68, 68, 0.3);
     }
-    
-    /* Video Info */
-    .video-info {
-        background: rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+
+    /* ========== IMAGE/THUMBNAIL ========== */
+    .stImage {
+        border-radius: 8px;
+        overflow: hidden;
     }
-    
-    .video-title {
-        font-size: 1.4rem;
-        font-weight: bold;
-        color: #00d4aa;
-        margin-bottom: 0.5rem;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
+
+    .stImage img {
+        border-radius: 8px;
     }
-    
-    /* Loading Animation */
-    .loading {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid rgba(0, 212, 170, 0.3);
-        border-radius: 50%;
-        border-top-color: #00d4aa;
-        animation: spin 1s ease-in-out infinite;
+
+    /* ========== SCROLLBAR ========== */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
     }
-    
-    @keyframes spin {
-        to { transform: rotate(360deg); }
+
+    ::-webkit-scrollbar-track {
+        background: #0A0A0A;
     }
-    
-    /* Floating Actions */
-    .floating-actions {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 999;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+
+    ::-webkit-scrollbar-thumb {
+        background: #333333;
+        border-radius: 4px;
     }
-    
-    .floating-btn {
-        background: linear-gradient(135deg, #00d4aa, #00a8ff);
-        color: #000000;
-        border: none;
-        border-radius: 50px;
-        padding: 12px 20px;
-        font-weight: bold;
-        box-shadow: 0 4px 20px rgba(0, 212, 170, 0.4);
-        cursor: pointer;
-        transition: all 0.3s ease;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #444444;
     }
-    
-    .floating-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0, 212, 170, 0.5);
-    }
-    
-    /* Mobile Responsive Design */
-    @media (max-width: 1200px) {
-        .main-header { font-size: 2.5rem !important; }
-        .sub-header { font-size: 1.1rem !important; }
-    }
-    
+
+    /* ========== RESPONSIVE ========== */
     @media (max-width: 768px) {
-        .main-header { 
-            font-size: 2rem !important; 
-            padding: 1.5rem 0 !important;
+        .block-container {
+            padding-top: 0.5rem !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+
+        .main-header {
+            font-size: 1.75rem !important;
+            padding: 0.5rem 0 0.25rem 0 !important;
+        }
+
+        .sub-header {
+            font-size: 0.875rem !important;
             margin-bottom: 1.5rem !important;
         }
-        .sub-header { 
-            font-size: 1rem !important; 
-            margin-bottom: 2rem !important;
-        }
-        .stTabs [data-baseweb="tab"] { 
-            padding: 0px 16px !important; 
-            font-size: 0.9rem !important;
-            height: 50px !important;
-        }
+
         .stTabs [data-baseweb="tab-list"] {
-            padding: 6px !important;
-            gap: 6px !important;
+            margin-bottom: 1.5rem !important;
         }
-        .video-info { 
-            padding: 1rem !important; 
-            margin: 0.5rem 0 !important;
-        }
-        .video-title {
-            font-size: 1.2rem !important;
-        }
-        .floating-actions { 
-            bottom: 80px !important; 
-            right: 10px !important;
-        }
-        .floating-btn {
-            padding: 10px 16px !important;
-            font-size: 0.9rem !important;
-        }
-        .info-card {
-            padding: 1rem !important;
-            margin: 0.5rem 0 !important;
-        }
-        .stButton > button {
-            padding: 0.75rem 1rem !important;
-            font-size: 14px !important;
-        }
-        /* Stack columns on mobile */
-        .stTabs [data-baseweb="tab-list"] {
-            flex-direction: column;
-            gap: 4px;
-        }
+
         .stTabs [data-baseweb="tab"] {
-            width: 100%;
-            justify-content: center;
+            padding: 0.75rem 1rem !important;
+            font-size: 0.8125rem !important;
         }
-    }
-    
-    @media (max-width: 480px) {
-        .main-header { 
-            font-size: 1.5rem !important; 
-            padding: 1rem 0 !important;
-        }
-        .sub-header { 
-            font-size: 0.9rem !important; 
-            margin-bottom: 1.5rem !important;
-        }
-        .stTabs [data-baseweb="tab"] { 
-            padding: 0px 12px !important; 
-            font-size: 0.8rem !important;
-            height: 45px !important;
-        }
+
         .video-title {
             font-size: 1.1rem !important;
         }
-        .floating-actions { 
-            bottom: 70px !important; 
-            right: 5px !important;
+    }
+
+    @media (max-width: 480px) {
+        .block-container {
+            padding-top: 0.25rem !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
         }
-        .floating-btn {
-            padding: 8px 12px !important;
+
+        .main-header {
+            font-size: 1.5rem !important;
+            padding: 0.25rem 0 0.25rem 0 !important;
+        }
+
+        .sub-header {
             font-size: 0.8rem !important;
-            min-height: 40px !important;
-        }
-        .info-card {
-            padding: 0.75rem !important;
-            border-radius: 8px !important;
-        }
-        .stButton > button {
-            padding: 0.6rem 0.8rem !important;
-            font-size: 13px !important;
-            min-height: 40px !important;
-        }
-        /* Improve touch targets */
-        .stTextInput > div > div > input,
-        .stSelectbox > div > div > div,
-        .stNumberInput > div > div > input {
-            min-height: 44px !important;
-            font-size: 16px !important;
-        }
-        /* Better spacing for mobile */
-        .stMarkdown {
-            margin-bottom: 0.5rem !important;
-        }
-        /* Optimize for portrait mode */
-        .stApp {
-            padding: 0.5rem !important;
-        }
-    }
-    
-    @media (max-width: 360px) {
-        .main-header { 
-            font-size: 1.3rem !important; 
-        }
-        .sub-header { 
-            font-size: 0.8rem !important; 
-        }
-        .stTabs [data-baseweb="tab"] { 
-            padding: 0px 8px !important; 
-            font-size: 0.75rem !important;
-            height: 40px !important;
-        }
-        .floating-btn {
-            padding: 6px 10px !important;
-            font-size: 0.75rem !important;
-            min-height: 36px !important;
-        }
-    }
-    
-    /* Landscape mode optimizations */
-    @media (max-height: 500px) and (orientation: landscape) {
-        .main-header { 
-            font-size: 1.5rem !important; 
-            padding: 0.5rem 0 !important;
             margin-bottom: 1rem !important;
         }
-        .sub-header { 
-            font-size: 0.9rem !important; 
+
+        .stTabs [data-baseweb="tab-list"] {
+            flex-wrap: wrap;
+            gap: 0.25rem !important;
             margin-bottom: 1rem !important;
         }
-        .floating-actions { 
-            bottom: 10px !important; 
-        }
-    }
-    
-    /* High DPI displays */
-    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-        .stButton > button,
-        .floating-btn {
-            border-width: 0.5px;
-        }
-    }
-    
-    /* Accessibility improvements */
-    @media (prefers-reduced-motion: reduce) {
-        .stButton > button,
-        .floating-btn,
-        .quick-action,
+
         .stTabs [data-baseweb="tab"] {
-            transition: none !important;
+            flex: 1 1 auto;
+            text-align: center;
+            justify-content: center;
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.75rem !important;
         }
-        .loading {
+
+        h3 {
+            font-size: 1.1rem !important;
+        }
+
+        .stButton > button {
+            padding: 0.5rem 1rem !important;
+            font-size: 0.8125rem !important;
+        }
+
+        .stDownloadButton > button {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.8125rem !important;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .main-header {
+            font-size: 1.25rem !important;
+        }
+
+        .sub-header {
+            font-size: 0.75rem !important;
+        }
+
+        .stTabs [data-baseweb="tab"] {
+            padding: 0.4rem 0.5rem !important;
+            font-size: 0.7rem !important;
+        }
+    }
+
+    /* ========== REDUCED MOTION ========== */
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            transition: none !important;
             animation: none !important;
         }
     }
-    
-    /* Dark mode support */
-    @media (prefers-color-scheme: dark) {
-        .stApp {
-            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
-        }
+
+    /* ========== LOADING SPINNER ========== */
+    .loading {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #333333;
+        border-top-color: #FFFFFF;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
     }
-    
-    /* Mobile device specific styles */
-    .mobile-device .stTabs [data-baseweb="tab-list"] {
-        flex-direction: column !important;
-        gap: 4px !important;
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
     }
-    
-    .mobile-device .stTabs [data-baseweb="tab"] {
-        width: 100% !important;
-        justify-content: center !important;
-        height: 45px !important;
-        font-size: 0.9rem !important;
+
+    /* ========== FOOTER ========== */
+    .app-footer {
+        text-align: center;
+        padding: 3rem 0;
+        color: #444444;
+        font-size: 0.8125rem;
+        border-top: 1px solid #1A1A1A;
+        margin-top: 4rem;
     }
-    
-    .mobile-device .main-header {
-        font-size: 1.8rem !important;
-        padding: 1rem 0 !important;
+
+    .app-footer a {
+        color: #666666;
+        text-decoration: none;
+        transition: color 0.2s ease;
     }
-    
-    .mobile-device .sub-header {
-        font-size: 0.9rem !important;
-        margin-bottom: 1.5rem !important;
-    }
-    
-    .mobile-device .video-title {
-        font-size: 1.1rem !important;
-    }
-    
-    .mobile-device .stButton > button {
-        min-height: 44px !important;
-        font-size: 16px !important;
-    }
-    
-    .mobile-device .stTextInput > div > div > input,
-    .mobile-device .stSelectbox > div > div > div,
-    .mobile-device .stNumberInput > div > div > input {
-        min-height: 44px !important;
-        font-size: 16px !important;
-    }
-    
-    /* Additional mobile improvements */
-    .mobile-device .stExpander > div > div {
-        padding: 0.5rem !important;
-    }
-    
-    .mobile-device .stProgress > div {
-        height: 8px !important;
-    }
-    
-    .mobile-device .stDownloadButton > button {
-        min-height: 44px !important;
-        font-size: 14px !important;
-        padding: 0.5rem 1rem !important;
-    }
-    
-    /* Improve mobile scrolling */
-    .mobile-device .stApp {
-        overflow-x: hidden !important;
-    }
-    
-    /* Better mobile spacing */
-    .mobile-device .stMarkdown {
-        margin-bottom: 0.75rem !important;
-    }
-    
-    .mobile-device .stExpander {
-        margin-bottom: 0.5rem !important;
-    }
-    
-    /* Mobile-friendly expander content */
-    .mobile-device .stExpander > div > div > div {
-        padding: 0.75rem !important;
+
+    .app-footer a:hover {
+        color: #FFFFFF;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -899,7 +832,7 @@ is_mobile = st.session_state.get('is_mobile', False)
 mobile_detector = st.empty()
 mobile_detector.markdown("""
 <script>
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
                  window.innerWidth <= 768;
 if (isMobile) {
     document.body.classList.add('mobile-device');
@@ -907,49 +840,49 @@ if (isMobile) {
 </script>
 """, unsafe_allow_html=True)
 
-st.markdown('<h1 class="main-header">🎬 YT-DLP Downloader</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Download videos and audio from 1000+ Supported Platforms</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">YT-DLP Downloader</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Download videos and audio from 1000+ platforms</p>', unsafe_allow_html=True)
 
 deps = check_dependencies()
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🏠 Download",
-    "⚙️ Advanced",
-    "📊 Monitor",
-    "📚 History",
-    "🔧 System"
+    "Download",
+    "Batch",
+    "Monitor",
+    "History",
+    "System"
 ])
 
 with tab1:
     if not all(deps.values()):
-        st.warning("⚠️ Some dependencies are missing. Check the System tab.")
-    st.markdown("### 🔗 Enter URL")
+        st.warning("Some dependencies are missing. Check the System tab.")
+    st.markdown("### Enter URL")
     # Mobile-friendly layout: stack vertically on small screens
     if st.session_state.get('is_mobile', False):
         url = st.text_input(
             "Video URL",
-            placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            placeholder="https://www.youtube.com/watch?v=...",
             help="Paste any video, playlist, or channel URL",
             label_visibility="collapsed"
         )
-        fetch_clicked = st.button("🔍 Fetch Info", use_container_width=True, disabled=not url)
+        fetch_clicked = st.button("Fetch Info", use_container_width=True, disabled=not url)
     else:
         col1, col2 = st.columns([4, 1])
         with col1:
             url = st.text_input(
                 "Video URL",
-                placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                placeholder="https://www.youtube.com/watch?v=...",
                 help="Paste any video, playlist, or channel URL",
                 label_visibility="collapsed"
             )
         with col2:
-            fetch_clicked = st.button("🔍 Fetch Info", use_container_width=True, disabled=not url)
+            fetch_clicked = st.button("Fetch Info", use_container_width=True, disabled=not url)
     if url:
         is_valid, message = validate_url(url)
         if is_valid:
-            st.success(f"✅ {message}")
+            st.success(f"{message}")
         else:
-            st.error(f"❌ {message}")
+            st.error(f"{message}")
     if fetch_clicked and url:
         with st.spinner("Fetching video information..."):
             try:
@@ -958,11 +891,11 @@ with tab1:
                     info = ydl.extract_info(url, download=False)
                     st.session_state.video_info = info
                     st.session_state.is_playlist_url = info.get('_type') == 'playlist' or 'entries' in info
-                st.success("✅ Information fetched successfully!")
+                st.success("Information fetched successfully!")
                 st.rerun()
             except Exception as e:
                 error_type, error_solution = categorize_error(str(e))
-                st.error(f"❌ {error_type}: {error_solution}")
+                st.error(f"{error_type}: {error_solution}")
     if st.session_state.video_info:
         info = st.session_state.video_info
         st.markdown("### 📺 Video Information")
@@ -973,10 +906,10 @@ with tab1:
             st.markdown(f'<div class="video-title">{info.get("title", "N/A")}</div>', unsafe_allow_html=True)
             if st.session_state.is_playlist_url:
                 entries_count = len(info.get('entries', []))
-                st.markdown(f"**📋 Type:** Playlist ({entries_count:,} videos)")
+                st.markdown(f"**Type:** Playlist ({entries_count:,} videos)")
             else:
-                st.markdown(f"**🎥 Type:** Single Video")
-                st.markdown(f"**⏱️ Duration:** {info.get('duration_string', 'N/A')}")
+                st.markdown(f"**Type:** Single Video")
+                st.markdown(f"**Duration:** {info.get('duration_string', 'N/A')}")
                 if info.get('view_count'):
                     st.markdown(f"**👀 Views:** {info['view_count']:,}")
             st.markdown(f"**👤 Uploader:** {info.get('uploader', 'N/A')}")
@@ -989,14 +922,14 @@ with tab1:
                 st.markdown(f'<div class="video-title">{info.get("title", "N/A")}</div>', unsafe_allow_html=True)
                 if st.session_state.is_playlist_url:
                     entries_count = len(info.get('entries', []))
-                    st.markdown(f"**📋 Type:** Playlist ({entries_count:,} videos)")
+                    st.markdown(f"**Type:** Playlist ({entries_count:,} videos)")
                 else:
-                    st.markdown(f"**🎥 Type:** Single Video")
-                    st.markdown(f"**⏱️ Duration:** {info.get('duration_string', 'N/A')}")
+                    st.markdown(f"**Type:** Single Video")
+                    st.markdown(f"**Duration:** {info.get('duration_string', 'N/A')}")
                     if info.get('view_count'):
                         st.markdown(f"**👀 Views:** {info['view_count']:,}")
                 st.markdown(f"**👤 Uploader:** {info.get('uploader', 'N/A')}")
-        st.markdown("### ⚙️ Download Options")
+        st.markdown("### Download Options")
         # Mobile-friendly download options layout
         if st.session_state.get('is_mobile', False):
             download_type = st.selectbox(
@@ -1076,23 +1009,23 @@ with tab1:
         st.markdown("---")
         # Mobile-friendly download button layout
         if st.session_state.get('is_mobile', False):
-            if st.button("🚀 Start Download", type="primary", use_container_width=True):
+            if st.button("Start Download", type="primary", use_container_width=True):
                 if not deps['yt-dlp']:
-                    st.error("❌ yt-dlp is required but not installed!")
+                    st.error("yt-dlp is required but not installed!")
                 else:
                     st.session_state.downloading = True
                     st.rerun()
         else:
             download_col1, download_col2, download_col3 = st.columns([2, 2, 2])
             with download_col2:
-                if st.button("🚀 Start Download", type="primary", use_container_width=True):
+                if st.button("Start Download", type="primary", use_container_width=True):
                     if not deps['yt-dlp']:
-                        st.error("❌ yt-dlp is required but not installed!")
+                        st.error("yt-dlp is required but not installed!")
                     else:
                         st.session_state.downloading = True
                         st.rerun()
     if st.session_state.get('downloading', False):
-        st.markdown("### 📥 Downloading...")
+        st.markdown("### Downloading...")
         progress_bar = st.progress(0)
         status_text = st.empty()
         temp_dir = tempfile.mkdtemp(prefix="ytdlp_")
@@ -1124,8 +1057,8 @@ with tab1:
                 downloaded_files = result['files']
                 progress_bar.progress(1.0)
                 status_text.empty()
-                st.success(f"🎉 Downloaded {len(downloaded_files)} file(s)!")
-                st.markdown("### 📥 Download Files")
+                st.success(f"Downloaded {len(downloaded_files)} file(s)!")
+                st.markdown("### Download Files")
 
                 # Calculate total size for warnings
                 total_size = sum(f[2] for f in downloaded_files)
@@ -1133,7 +1066,7 @@ with tab1:
 
                 if large_files_count > 0:
                     st.warning(
-                        f"⚠️ {large_files_count} file(s) exceed {MAX_SAFE_FILE_SIZE_MB}MB. "
+                        f"{large_files_count} file(s) exceed {MAX_SAFE_FILE_SIZE_MB}MB. "
                         f"Large files cannot be downloaded via browser due to memory constraints."
                     )
 
@@ -1158,14 +1091,14 @@ with tab1:
                     "status": "Success"
                 })
             else:
-                st.error("❌ Download failed!")
+                st.error("Download failed!")
                 if result['error']:
                     error_type, error_solution = categorize_error(result['error'])
                     st.markdown(f"**Error:** {error_type}")
                     st.markdown(f"**Solution:** {error_solution}")
 
         except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
+            st.error(f"Error: {str(e)}")
             error_type, error_solution = categorize_error(str(e))
             st.markdown(f"**Error:** {error_type}")
             st.markdown(f"**Solution:** {error_solution}")
@@ -1175,19 +1108,19 @@ with tab1:
             except:
                 pass
             st.session_state.downloading = False
-            if st.button("🔄 Download Another"):
+            if st.button("Download Another"):
                 st.rerun()
 
 with tab2:
-    st.markdown("### 🚀 Batch Download & Advanced Settings")
+    st.markdown("### Batch Download & Advanced Settings")
     if st.session_state.get("batch_temp_dir") and not st.session_state.get("batch_download_trigger", False):
         with st.spinner("Cleaning up previous session files..."):
             if cleanup_temp_dir_robust(st.session_state.batch_temp_dir):
                 st.session_state.batch_temp_dir = None
-                st.success("✅ Cleaned up old temporary files.")
+                st.success("Cleaned up old temporary files.")
             else:
-                st.warning("⚠️ Could not clean up all old temporary files.")
-    st.markdown("## 📦 Batch Download")
+                st.warning("Could not clean up all old temporary files.")
+    st.markdown("## Batch Download")
     st.markdown("Download multiple videos at once with the same settings.")
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -1198,7 +1131,7 @@ with tab2:
         )
         urls_list = [u.strip() for u in batch_urls.split('\n') if u.strip()]
         if urls_list:
-            st.info(f"📄 {len(urls_list)} URL{'s' if len(urls_list) > 1 else ''} ready for download")
+            st.info(f"{len(urls_list)} URL{'s' if len(urls_list) > 1 else ''} ready for download")
     with col2:
         if urls_list:
             st.markdown("**📊 Quick Preview:**")
@@ -1208,7 +1141,7 @@ with tab2:
             if len(urls_list) > 3:
                 st.text(f"... and {len(urls_list) - 3} more")
     if urls_list:
-        st.markdown("### ⚙️ Batch Download Settings")
+        st.markdown("### Batch Download Settings")
         setting_col1, setting_col2, setting_col3 = st.columns(3)
         with setting_col1:
             batch_download_type = st.selectbox(
@@ -1226,7 +1159,7 @@ with tab2:
         with setting_col3:
             if batch_download_type == "Audio Only":
                 batch_audio_format = st.selectbox(
-                    "🎵 Audio Format",
+                    "Audio Format",
                     ["mp3", "aac", "m4a", "opus", "flac"]
                 )
             else:
@@ -1236,32 +1169,32 @@ with tab2:
             with batch_col1:
                 batch_subs = st.checkbox("📝 Download Subtitles")
                 batch_thumbnail = st.checkbox("🖼️ Download Thumbnails")
-                batch_metadata = st.checkbox("📋 Add Metadata", disabled=not deps.get('ffmpeg', False))
+                batch_metadata = st.checkbox("Add Metadata", disabled=not deps.get('ffmpeg', False))
             with batch_col2:
                 batch_max_size = st.selectbox(
                     "📏 Max File Size (per file)",
                     ["No Limit", "100MB", "500MB", "1GB", "2GB"]
                 )
                 batch_timeout = st.slider(
-                    "⏱️ Timeout per URL (minutes)",
+                    "Timeout per URL (minutes)",
                     min_value=5, max_value=30, value=15
                 )
                 batch_parallel = st.slider(
-                    "🔄 Parallel Downloads",
+                    "Parallel Downloads",
                     min_value=1, max_value=10, value=3,
                     help="Number of simultaneous downloads"
                 )
     if urls_list and not st.session_state.get("batch_download_trigger", False):
         st.markdown("---")
         estimated_time = len(urls_list) * 2 / (st.session_state.get('batch_parallel', 3) or 3)
-        st.info(f"⏱️ Estimated time: ~{int(estimated_time)} minutes for {len(urls_list)} URL(s)")
+        st.info(f"Estimated time: ~{int(estimated_time)} minutes for {len(urls_list)} URL(s)")
         if len(urls_list) > 10:
-            st.warning("⚠️ Large batch detected! Consider reducing parallel downloads if issues occur.")
+            st.warning("Large batch detected! Consider reducing parallel downloads if issues occur.")
         start_col1, start_col2, start_col3 = st.columns([1, 2, 1])
         with start_col2:
-            if st.button("🚀 Start Batch Download", type="primary", use_container_width=True):
+            if st.button("Start Batch Download", type="primary", use_container_width=True):
                 if not deps.get('yt-dlp', False):
-                    st.error("❌ yt-dlp is required but not installed!")
+                    st.error("yt-dlp is required but not installed!")
                 else:
                     st.session_state.batch_download_trigger = True
                     st.session_state.batch_urls_list = urls_list
@@ -1284,7 +1217,7 @@ with tab2:
         batch_settings = st.session_state.get("batch_settings", {})
         total_urls = len(urls_to_process)
         st.markdown("---")
-        st.markdown("## 📥 Batch Download in Progress")
+        st.markdown("## Batch Download in Progress")
         st.markdown(f"Processing {total_urls} URL(s) with {batch_settings.get('parallel', 3)} parallel downloads...")
 
         # Progress tracking
@@ -1386,10 +1319,10 @@ with tab2:
                 results.append(result)
                 current_progress = idx / total_urls
                 overall_progress.progress(current_progress)
-                current_status.info(f"🔄 Processed {idx}/{total_urls}: {result['url'][:60]}...")
+                current_status.info(f"Processed {idx}/{total_urls}: {result['url'][:60]}...")
                 with results_container:
                     if result['status'] == "success":
-                        st.success(f"✅ [{idx}/{total_urls}] {result['title']}")
+                        st.success(f"[{idx}/{total_urls}] {result['title']}")
                         success_count += 1
                         all_downloaded_files.extend(result.get('files', []))
                         st.session_state.download_history.insert(0, {
@@ -1400,10 +1333,10 @@ with tab2:
                             "status": "Success"
                         })
                     elif result['status'] == "timeout":
-                        st.error(f"⏱️ [{idx}/{total_urls}] Timeout - took longer than {batch_settings.get('timeout', 900)//60} minutes")
+                        st.error(f"[{idx}/{total_urls}] Timeout - took longer than {batch_settings.get('timeout', 900)//60} minutes")
                         fail_count += 1
                     else:
-                        st.error(f"❌ [{idx}/{total_urls}] {result['title']}: {result.get('error', 'Unknown error')}")
+                        st.error(f"[{idx}/{total_urls}] {result['title']}: {result.get('error', 'Unknown error')}")
                         fail_count += 1
                         st.session_state.download_history.insert(0, {
                             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -1416,20 +1349,20 @@ with tab2:
         # Final results
         overall_progress.progress(1.0)
         if success_count > 0:
-            current_status.success(f"🎉 Batch Complete! ✅ {success_count} succeeded, ❌ {fail_count} failed, ⏭️ {skip_count} skipped")
+            current_status.success(f"Batch Complete! {success_count} succeeded, {fail_count} failed, {skip_count} skipped")
         else:
-            current_status.error(f"❌ Batch Complete! No downloads succeeded. {fail_count} failed, {skip_count} skipped")
+            current_status.error(f"Batch Complete. No downloads succeeded. {fail_count} failed, {skip_count} skipped")
 
         # Show downloadable files
         if all_downloaded_files:
-            st.markdown("### 📦 Download Your Files")
+            st.markdown("### Download Your Files")
             st.markdown(f"**{len(all_downloaded_files)} file(s) ready for download:**")
 
             # Warn about large files
             large_files_count = sum(1 for f in all_downloaded_files if f[2] > MAX_SAFE_FILE_SIZE_BYTES)
             if large_files_count > 0:
                 st.warning(
-                    f"⚠️ {large_files_count} file(s) exceed {MAX_SAFE_FILE_SIZE_MB}MB. "
+                    f"{large_files_count} file(s) exceed {MAX_SAFE_FILE_SIZE_MB}MB. "
                     f"Large files cannot be downloaded via browser due to memory constraints."
                 )
 
@@ -1448,26 +1381,26 @@ with tab2:
                     size_mb = file_size / (1024 * 1024)
                     st.markdown(f"**{size_mb:.1f} MB**")
         else:
-            st.info("ℹ️ No files were successfully downloaded.")
+            st.info("No files were successfully downloaded.")
 
         # Cleanup option
         st.markdown("---")
         cleanup_col1, cleanup_col2, cleanup_col3 = st.columns([1, 2, 1])
         with cleanup_col2:
-            if st.button("🧹 Clean Up Server Files", use_container_width=True):
+            if st.button("Clean Up Server Files", use_container_width=True):
                 if cleanup_temp_dir_robust(batch_temp_dir):
-                    st.success("✅ Server files cleaned up!")
+                    st.success("Server files cleaned up!")
                     st.session_state.batch_temp_dir = None
                 else:
-                    st.error("❌ Failed to clean up some files.")
+                    st.error("Failed to clean up some files.")
         st.session_state.batch_download_trigger = False
         st.session_state.batch_urls_list = []
     st.markdown("---")
     st.markdown("## 🔧 Advanced Settings")
-    with st.expander("🌐 Network & Custom Settings"):
+    with st.expander("Network & Custom Settings"):
         adv_col1, adv_col2 = st.columns(2)
         with adv_col1:
-            st.markdown("**🌐 Network Options**")
+            st.markdown("**Network Options**")
             use_proxy = st.checkbox("Use Proxy")
             if use_proxy:
                 proxy_url = st.text_input("Proxy URL:", placeholder="http://proxy:port")
@@ -1517,7 +1450,7 @@ with tab3:
         else:
             st.metric("Free Space", "N/A")
     with col4:
-        if st.button("🌐 Test Speed"):
+        if st.button("Test Speed"):
             with st.spinner("Testing network speed..."):
                 try:
                     start_time = time.time()
@@ -1531,9 +1464,9 @@ with tab3:
                 except:
                     st.metric("Network Speed", "Test Failed")
     st.markdown("---")
-    st.markdown("### 📥 Active Downloads")
+    st.markdown("### Active Downloads")
     if st.session_state.get('downloading', False):
-        st.info("🔄 Download in progress...")
+        st.info("Download in progress...")
     else:
         st.info("No active downloads")
 
@@ -1552,9 +1485,9 @@ with tab4:
                     st.write(f"{entry['files']} files")
                 with col4:
                     if entry['status'] == 'Success':
-                        st.markdown('<p class="centered-success">✅ Success</p>', unsafe_allow_html=True)
+                        st.markdown('<p class="centered-success">Success</p>', unsafe_allow_html=True)
                     else:
-                        st.markdown('<p class="centered-error">❌ Failed</p>', unsafe_allow_html=True)
+                        st.markdown('<p class="centered-error">Failed</p>', unsafe_allow_html=True)
                 if i < len(st.session_state.download_history) - 1:
                     st.divider()
         if st.button("🗑️ Clear History"):
@@ -1566,27 +1499,27 @@ with tab4:
 
 with tab5:
     st.markdown("### 🔧 System Information")
-    st.markdown("#### 📦 Dependencies")
+    st.markdown("#### Dependencies")
     dep_col1, dep_col2, dep_col3 = st.columns(3)
     with dep_col1:
         st.markdown("**yt-dlp**")
         if deps['yt-dlp']:
-            st.markdown('<span class="dep-available">✅ Installed</span>', unsafe_allow_html=True)
+            st.markdown('<span class="dep-available">Installed</span>', unsafe_allow_html=True)
             st.caption(deps['yt-dlp'][:50] + "...")
         else:
-            st.markdown('<span class="dep-missing">❌ Missing</span>', unsafe_allow_html=True)
+            st.markdown('<span class="dep-missing">Missing</span>', unsafe_allow_html=True)
     with dep_col2:
         st.markdown("**FFmpeg**")
         if deps['ffmpeg']:
-            st.markdown('<span class="dep-available">✅ Installed</span>', unsafe_allow_html=True)
+            st.markdown('<span class="dep-available">Installed</span>', unsafe_allow_html=True)
         else:
-            st.markdown('<span class="dep-missing">❌ Missing</span>', unsafe_allow_html=True)
+            st.markdown('<span class="dep-missing">Missing</span>', unsafe_allow_html=True)
     with dep_col3:
         st.markdown("**FFprobe**")
         if deps['ffprobe']:
-            st.markdown('<span class="dep-available">✅ Installed</span>', unsafe_allow_html=True)
+            st.markdown('<span class="dep-available">Installed</span>', unsafe_allow_html=True)
         else:
-            st.markdown('<span class="dep-missing">❌ Missing</span>', unsafe_allow_html=True)
+            st.markdown('<span class="dep-missing">Missing</span>', unsafe_allow_html=True)
     if not all(deps.values()):
         st.markdown("---")
         st.markdown("#### 🛠️ Installation Instructions")
@@ -1620,9 +1553,9 @@ with tab5:
         st.markdown(f"**Node:** {platform.node()}")
 
 with st.sidebar:
-    st.markdown("### 🚀 Quick Actions")
+    st.markdown("### Quick Actions")
     st.markdown("#### 📱 Format Presets")
-    if st.button("🎵 Audio Only (MP3)", use_container_width=True):
+    if st.button("Audio Only (MP3)", use_container_width=True):
         st.session_state.preset_format = "audio_mp3"
         st.success("Preset: Audio MP3")
     if st.button("📺 Best Video", use_container_width=True):
@@ -1651,7 +1584,7 @@ with st.sidebar:
     - Facebook, Vimeo
     - And 1000+ more!
     """)
-    if st.button("📋 View All Platforms", use_container_width=True):
+    if st.button("View All Platforms", use_container_width=True):
         try:
             result = subprocess.run(['yt-dlp', '--list-extractors'], capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
@@ -1661,108 +1594,20 @@ with st.sidebar:
             st.info("Run `yt-dlp --list-extractors` to see all platforms")
 
 
-
-st.markdown("---")
-st.markdown("### 💡 Pro Tips:")
-# Mobile-friendly pro tips layout
-if st.session_state.get('is_mobile', False):
-    st.markdown("#### 🎯 For Best Results:")
-    st.markdown("""
-    - Use wired internet
-    - Test single videos first
-    - Check storage space
-    """)
-    st.markdown("#### 🚀 Speed Optimization:")
-    st.markdown("""
-    - Choose 720p for balance
-    - Close bandwidth-heavy apps
-    - Use audio-only for music
-    """)
-    st.markdown("#### 🛠️ Troubleshooting:")
-    st.markdown("""
-    - Refresh if downloads fail
-    - Try different qualities
-    - Check URL in browser
-    """)
-else:
-    tip_col1, tip_col2, tip_col3 = st.columns(3)
-    with tip_col1:
-        st.markdown("#### 🎯 For Best Results:")
-        st.markdown("""
-        - Use wired internet
-        - Test single videos first
-        - Check storage space
-        """)
-    with tip_col2:
-        st.markdown("#### 🚀 Speed Optimization:")
-        st.markdown("""
-        - Choose 720p for balance
-        - Close bandwidth-heavy apps
-        - Use audio-only for music
-        """)
-    with tip_col3:
-        st.markdown("#### 🛠️ Troubleshooting:")
-        st.markdown("""
-        - Refresh if downloads fail
-        - Try different qualities
-        - Check URL in browser
-        """)
 st.markdown("---")
 st.markdown(
-    '<div style="text-align: center; padding: 2rem 0; border-top: 1px solid #3d3d5c; margin-top: 3rem;">'
-        '<div style="background: linear-gradient(90deg, #00d4aa, #00a8ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">'
-        '    Advanced YT-DLP Downloader'
-        '</div>'
-        '<div style="color: #a0a0a0; margin-bottom: 1rem;">'
-        '    Powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank" style="color: #00a8ff;">yt-dlp</a> | '
-        '    Built with <a href="https://streamlit.io" target="_blank" style="color: #00a8ff;">Streamlit</a><br>'
-        '    Made by <a href="https://linktr.ee/sahaj33" target="_blank" style="color: #00a8ff;">Sahaj33</a>'
-        '</div>'
+    '<div style="text-align: center; padding: 2rem 0; color: #666666; font-size: 0.875rem;">'
+        'Powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank" style="color: #999999;">yt-dlp</a> · '
+        'Built with <a href="https://streamlit.io" target="_blank" style="color: #999999;">Streamlit</a> · '
+        'Made by <a href="https://linktr.ee/sahaj33" target="_blank" style="color: #999999;">Sahaj33</a>'
     '</div>',
     unsafe_allow_html=True
 )
-# Mobile-friendly features layout
-if st.session_state.get('is_mobile', False):
-    st.markdown("""
-    <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
-        <span style="color: #00d4aa;">🎬</span> 1000+ Supported Sites
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("""
-    <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
-        <span style="color: #00a8ff;">⚡</span> High-Speed Downloads
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("""
-    <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
-        <span style="color: #26de81;">🔧</span> Advanced Features
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    feat_col1, feat_col2, feat_col3 = st.columns(3)
-    with feat_col1:
-        st.markdown("""
-        <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
-            <span style="color: #00d4aa;">🎬</span> 1000+ Supported Sites
-        </div>
-        """, unsafe_allow_html=True)
-    with feat_col2:
-        st.markdown("""
-        <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
-            <span style="color: #00a8ff;">⚡</span> High-Speed Downloads
-        </div>
-        """, unsafe_allow_html=True)
-    with feat_col3:
-        st.markdown("""
-        <div style="background: rgba(255, 255, 255, 0.1); padding: 0.5rem 1rem; border-radius: 20px; text-align: center; margin: 0.5rem 0;">
-            <span style="color: #26de81;">🔧</span> Advanced Features
-        </div>
-        """, unsafe_allow_html=True)
 
 def show_dependency_warning():
     if not deps['yt-dlp']:
         st.error("""
-        ❌ **yt-dlp is not installed!**
+        **yt-dlp is not installed!**
         Install it using:
         ```bash
         pip install yt-dlp
