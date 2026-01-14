@@ -8,6 +8,12 @@ A modern, minimalist web application for downloading videos and audio from 1000+
 
 ---
 
+## Preview
+
+![Dashboard](assets/dashboard.png)
+
+---
+
 ## Features
 
 - **Download Types** — Video+Audio, Audio-only, or Video-only
